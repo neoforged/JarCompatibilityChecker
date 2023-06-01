@@ -44,7 +44,7 @@ public class ClassInfoComparer {
             List<String> internalAnnotations, InternalAnnotationCheckMode internalAnnotationCheckMode, ClassInfoCache baseCache, ClassInfo baseClassInfo,
             ClassInfoCache concreteCache, @Nullable ClassInfo concreteClassInfo) {
         ClassInfoComparisonResults results = new ClassInfoComparisonResults(baseClassInfo);
-        boolean classInternal = isInternalApi(baseClassInfo, internalAnnotations, internalAnnotationCheckMode);
+        boolean classInternal = isInternalApi(baseClassInfo, baseCache, internalAnnotations, internalAnnotationCheckMode);
 
         if (classInternal && internalAnnotationCheckMode == InternalAnnotationCheckMode.SKIP)
             return results;
@@ -117,7 +117,7 @@ public class ClassInfoComparer {
 
             boolean isStatic = (baseInfo.access & Opcodes.ACC_STATIC) != 0;
             MethodInfo inputInfo = getMethodInfo(concreteClassInfo, concreteParents, isStatic, baseInfo.name, baseInfo.desc);
-            boolean methodInternal = isInternalApi(baseInfo, internalAnnotations, internalAnnotationCheckMode);
+            boolean methodInternal = isInternalApi(baseInfo, baseCache, internalAnnotations, internalAnnotationCheckMode);
             if (methodInternal && internalAnnotationCheckMode == InternalAnnotationCheckMode.SKIP)
                 continue;
 
@@ -165,7 +165,7 @@ public class ClassInfoComparer {
         for (FieldInfo baseInfo : baseClassInfo.getFields().values()) {
             boolean isStatic = (baseInfo.access & Opcodes.ACC_STATIC) != 0;
             FieldInfo inputInfo = getFieldInfo(concreteClassInfo, concreteParents, isStatic, baseInfo.name);
-            boolean fieldInternal = isInternalApi(baseInfo, internalAnnotations, internalAnnotationCheckMode);
+            boolean fieldInternal = isInternalApi(baseInfo, baseCache, internalAnnotations, internalAnnotationCheckMode);
             if (fieldInternal && internalAnnotationCheckMode == InternalAnnotationCheckMode.SKIP)
                 continue;
 
@@ -222,12 +222,17 @@ public class ClassInfoComparer {
         return isVisible(checkBinary, baseAccess) && (baseAccess & Opcodes.ACC_FINAL) == 0 && (inputAccess & Opcodes.ACC_FINAL) != 0;
     }
 
-    public static boolean isInternalApi(MemberInfo memberInfo, List<String> internalAnnotations, InternalAnnotationCheckMode checkMode) {
+    public static boolean isInternalApi(MemberInfo memberInfo, ClassInfoCache cache, List<String> internalAnnotations, InternalAnnotationCheckMode checkMode) {
         if (checkMode == InternalAnnotationCheckMode.ERROR)
             return false; // Even if internal, we want to handle internal members like normal for ERROR check mode
 
+        String name = memberInfo.getName();
+        int idx = name.lastIndexOf('/');
+        String packageInfoName = name.substring(0, idx + 1) + "package-info";
+        ClassInfo packageInfo = cache.getMainClassInfo(packageInfoName);
+
         for (String internalAnnotation : internalAnnotations) {
-            if (memberInfo.hasAnnotation(internalAnnotation))
+            if (memberInfo.hasAnnotation(internalAnnotation) || packageInfo != null && packageInfo.hasAnnotation(internalAnnotation))
                 return true;
         }
 
