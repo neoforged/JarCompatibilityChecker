@@ -22,7 +22,7 @@ class JCCPlugin implements Plugin<Project> {
             final compileCp = target.configurations.named('compileClasspath')
             final group = target.provider { target.group }
             final jarTask = target.tasks.named('jar', Jar)
-            final projectName = target.path
+            final projectName = target.name + ' (' + target.path + ')'
             final globalOutputFile = target.rootProject.file('jcc.json')
             final providers = target.providers
             final ciSystemEnv = target.providers.environmentVariable('CI')
