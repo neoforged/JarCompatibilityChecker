@@ -5,7 +5,7 @@ plugins {
     id 'com.gradle.plugin-publish' version '1.1.0'
 }
 
-version '1.0.0'
+version rootProject.version
 group 'net.neoforged.jarcompatibilitychecker'
 
 java {
@@ -36,5 +36,11 @@ gradlePlugin {
             tags.set(['compatibility'])
             implementationClass = 'net.neoforged.jarcompatibilitychecker.gradle.JCCPlugin'
         }
+    }
+}
+
+publishing {
+    repositories {
+        maven gradleutils.publishingMaven
     }
 }
