@@ -1,0 +1,40 @@
+plugins {
+    id 'java-gradle-plugin'
+    id 'groovy'
+    id 'maven-publish'
+    id 'com.gradle.plugin-publish' version '1.1.0'
+}
+
+version '1.0.0'
+group 'net.neoforged.jarcompatibilitychecker'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+    withSourcesJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation(project(':'))
+    implementation 'com.google.code.gson:gson:2.9.0'
+}
+
+gradlePlugin {
+    website = 'https://github.com/neoforged/JarCompatibilityChecker'
+    vcsUrl  = 'https://github.com/neoforged/JarCompatibilityChecker.git'
+
+    plugins {
+        jcc {
+            id = 'net.neoforged.jarcompatibilitychecker'
+            displayName = 'JarCompatibilityChecker'
+            description = 'A plugin that checks if two jars are compatible'
+            tags.set(['compatibility'])
+            implementationClass = 'net.neoforged.jarcompatibilitychecker.gradle.JCCPlugin'
+        }
+    }
+}

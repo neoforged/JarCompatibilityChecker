@@ -1,42 +1,48 @@
+import net.neoforged.gradleutils.PomUtilsExtension.License
+
 plugins {
-    id 'java'
+    id 'java-library'
+    id 'signing'
     id 'maven-publish'
-    id 'com.github.johnrengelman.shadow' version '7.1.2'
-    id 'org.cadixdev.licenser' version '0.6.1'
-    id 'net.minecraftforge.gradleutils' version '2.+'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'net.neoforged.gradleutils' version '3.0.0-alpha.10'
 }
 
-group 'net.minecraftforge'
+group 'net.neoforged'
 
-version = gradleutils.getTagOffsetVersion()
+base.archivesName = 'jarcompatibilitychecker'
+
+version = gradleutils.version
 println('Version: ' + version)
 java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+
+gradleutils {
+    setupSigning()
+    setupCentralPublishing()
+}
 
 ext {
     CHANGELOG_TAG = '0.1'
 }
 
-license {
-    header project.file('LICENSE-header.txt')
-    include 'net/minecraftforge/jarcompatibilitychecker/**/*.java'
-}
-
 repositories {
     mavenCentral()
+}
 
-    maven {
-        url 'https://maven.minecraftforge.net/'
-    }
+configurations {
+    testCp
 }
 
 dependencies {
-    implementation 'org.ow2.asm:asm-commons:9.3'
-    implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
-    implementation 'com.google.code.gson:gson:2.9.0'
-    implementation 'com.google.guava:guava:31.1-jre'
+    api 'org.ow2.asm:asm-commons:9.3'
+    api 'net.sf.jopt-simple:jopt-simple:5.0.4'
+    api 'com.google.code.gson:gson:2.9.0'
+    api 'com.google.guava:guava:31.1-jre'
     implementation 'org.jetbrains:annotations:23.0.0'
 
     testImplementation 'junit:junit:4.13.2'
+
+    testCp(files(tasks.shadowJar.archiveFile))
 }
 
 jar {
@@ -46,7 +52,7 @@ jar {
 
     manifest {
         attributes([
-                'Main-Class': 'net.minecraftforge.jarcompatibilitychecker.ConsoleTool',
+                'Main-Class': 'net.neoforged.jarcompatibilitychecker.ConsoleTool',
                 'Implementation-Version': project.version
         ])
     }
@@ -71,48 +77,35 @@ tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
 }
 
+tasks.register('runExampleTest', JavaExec) {
+    classpath = configurations.testCp
+    mainClass = 'net.neoforged.jarcompatibilitychecker.ConsoleTool'
+    args('--binary', '--output', 'output.json', '--base-jar', 'tests/base/build/libs/base.jar', '--input-jar', 'tests/top/build/libs/top.jar')
+    dependsOn(':tests:base:jar', ':tests:top:jar')
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            artifactId = 'jarcompatibilitychecker'
             from components.java
+            gradleutils.sign(it)
 
             pom {
-                name = 'JAR Compatibility Checker'
-                description = 'Reports API or binary incompatibilities between two JARs'
-                url = 'https://github.com/MinecraftForge/JarCompatibilityChecker'
+                name = project.name
+                description = 'A Java library for finding incompatibilities between binaries'
 
-                scm {
-                    url = 'https://github.com/MinecraftForge/JarCompatibilityChecker'
-                    connection = 'scm:git:git://github.com/MinecraftForge/JarCompatibilityChecker.git'
-                    developerConnection = 'scm:git:git@github.com:MinecraftForge/JarCompatibilityChecker.git'
-                }
-
-                issueManagement {
-                    system = 'github'
-                    url = 'https://github.com/MinecraftForge/JarCompatibilityChecker/issues'
-                }
-
-                licenses {
-                    license {
-                        name = 'LGPLv2.1'
-                        url = 'https://www.gnu.org/licenses/old-licenses/lgpl-2.1.txt'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = 'SizableShrimp'
-                        name = 'SizableShrimp'
-                    }
-                }
+                pomUtils.neoForgedDeveloper(it)
+                pomUtils.license(it, License.LGPL_v2)
+                pomUtils.githubRepo(it, 'JarCompatibilityChecker')
             }
         }
     }
     repositories {
-        maven gradleutils.getPublishingForgeMaven()
+        maven gradleutils.publishingMaven
     }
 }
 
 changelog {
-    fromTag CHANGELOG_TAG
+    from CHANGELOG_TAG
 }
