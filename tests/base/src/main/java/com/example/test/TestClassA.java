@@ -7,6 +7,9 @@ import java.net.URLConnection;
 
 public class TestClassA {
     public String field;
+    public Runnable lambdaThing = () -> {
+        System.out.println("Hi!");
+    };
     public void publicMethodA(String p1) {
 
     }

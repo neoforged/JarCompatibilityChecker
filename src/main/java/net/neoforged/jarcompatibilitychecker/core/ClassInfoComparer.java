@@ -15,6 +15,7 @@ import net.neoforged.jarcompatibilitychecker.data.FieldInfo;
 import net.neoforged.jarcompatibilitychecker.data.MemberInfo;
 import net.neoforged.jarcompatibilitychecker.data.MethodInfo;
 import net.neoforged.jarcompatibilitychecker.sort.TopologicalSort;
+import net.neoforged.jarcompatibilitychecker.util.AccessHelpers;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.Opcodes;
 
@@ -111,6 +112,9 @@ public class ClassInfoComparer {
         Set<MethodInfo> seenMethods = new HashSet<>();
 
         for (MethodInfo baseInfo : baseClassInfo.getMethods().values()) {
+            // base synthetic -> ignore changes
+            if (AccessHelpers.isSynthetic(baseInfo)) continue;
+
             boolean isStatic = (baseInfo.access & Opcodes.ACC_STATIC) != 0;
             MethodInfo inputInfo = getMethodInfo(concreteClassInfo, concreteParents, isStatic, baseInfo.name, baseInfo.desc);
             boolean methodInternal = isInternalApi(baseInfo, internalAnnotations, internalAnnotationCheckMode);
@@ -120,7 +124,8 @@ public class ClassInfoComparer {
             boolean isMethodError = !methodInternal || internalAnnotationCheckMode == InternalAnnotationCheckMode.ERROR;
             boolean methodVisible = isVisible(checkBinary, baseInfo.access);
 
-            if (inputInfo == null) {
+            // base non-synthetic -> synthetic should be considered an error as synthetic methods aren't stable
+            if (inputInfo == null || AccessHelpers.isSynthetic(inputInfo)) {
                 if (checkBinary) {
                     results.addMethodIncompatibility(baseInfo, IncompatibilityMessages.METHOD_REMOVED, isMethodError);
                 } else if (methodVisible) {
