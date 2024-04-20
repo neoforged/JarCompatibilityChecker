@@ -11,4 +11,8 @@ public class AccessHelpers {
     public static boolean isSynthetic(MemberInfo info) {
         return isSynthetic(info.getAccess());
     }
+
+    public static boolean isBridge(MemberInfo info) {
+        return ((info.getAccess() & Opcodes.ACC_BRIDGE)) != 0;
+    }
 }

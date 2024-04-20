@@ -113,7 +113,7 @@ public class ClassInfoComparer {
 
         for (MethodInfo baseInfo : baseClassInfo.getMethods().values()) {
             // base synthetic -> ignore changes
-            if (AccessHelpers.isSynthetic(baseInfo)) continue;
+            if (AccessHelpers.isSynthetic(baseInfo) && !AccessHelpers.isBridge(baseInfo)) continue;
 
             boolean isStatic = (baseInfo.access & Opcodes.ACC_STATIC) != 0;
             MethodInfo inputInfo = getMethodInfo(concreteClassInfo, concreteParents, isStatic, baseInfo.name, baseInfo.desc);
@@ -125,7 +125,7 @@ public class ClassInfoComparer {
             boolean methodVisible = isVisible(checkBinary, baseInfo.access);
 
             // base non-synthetic -> synthetic should be considered an error as synthetic methods aren't stable
-            if (inputInfo == null || AccessHelpers.isSynthetic(inputInfo)) {
+            if (inputInfo == null || (AccessHelpers.isSynthetic(inputInfo) && !AccessHelpers.isBridge(inputInfo))) {
                 if (checkBinary) {
                     results.addMethodIncompatibility(baseInfo, IncompatibilityMessages.METHOD_REMOVED, isMethodError);
                 } else if (methodVisible) {
