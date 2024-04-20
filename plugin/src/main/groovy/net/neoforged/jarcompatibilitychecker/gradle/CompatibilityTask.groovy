@@ -28,6 +28,7 @@ abstract class CompatibilityTask extends DefaultTask {
                 taskDir.map { it.file('input.jar') }, objects, mavens, artifact, classifier
         ))
         isAPI.convention(true)
+        getMavens().convention(['https://maven.neoforged.net/releases', 'https://repo1.maven.org/maven2'])
     }
 
     @Optional
