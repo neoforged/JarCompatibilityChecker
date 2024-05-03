@@ -226,6 +226,10 @@ public class ClassInfoComparer {
         return isVisible(checkBinary, baseAccess) && (baseAccess & Opcodes.ACC_FINAL) == 0 && (inputAccess & Opcodes.ACC_FINAL) != 0;
     }
 
+    public static boolean isInternalApi(MemberInfo memberInfo, List<String> internalAnnotations, InternalAnnotationCheckMode checkMode) {
+        return isInternalApi(memberInfo, internalAnnotations, checkMode, null);
+    }
+
     public static boolean isInternalApi(MemberInfo memberInfo, List<String> internalAnnotations, InternalAnnotationCheckMode checkMode, @Nullable ClassInfo packageInfo) {
         if (checkMode == InternalAnnotationCheckMode.ERROR)
             return false; // Even if internal, we want to handle internal members like normal for ERROR check mode
