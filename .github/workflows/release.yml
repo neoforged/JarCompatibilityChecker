@@ -15,9 +15,9 @@ jobs:
   release:
     uses: neoforged/actions/.github/workflows/gradle-publish.yml@main
     with:
-      java: 8
+      java: 17
       pre_gradle_tasks: test
-      gradle_tasks: publish # TODO - publish to central (closeAndReleaseSonatypeStagingRepository) and GPP
+      gradle_tasks: publish publishPlugins closeAndReleaseSonatypeStagingRepository
     secrets:
       DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       MAVEN_USER: ${{ secrets.MAVEN_USER }}
@@ -27,3 +27,5 @@ jobs:
       GPG_SUBKEY_PASSWORD: ${{ secrets.GPG_SUBKEY_PASSWORD }}
       SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
       SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+      GPP_KEY: ${{ secrets.GPP_KEY }}
+      GPP_SECRET: ${{ secrets.GPP_SECRET }}

@@ -8,6 +8,13 @@ plugins {
 version rootProject.version
 group 'net.neoforged.jarcompatibilitychecker'
 
+if (System.getenv('GPP_KEY')) {
+    project.ext {
+        set('gradle.publish.key', System.getenv('GPP_KEY'))
+        set('gradle.publish.secret', System.getenv('GPP_SECRET'))
+    }
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(8)
@@ -21,12 +28,12 @@ repositories {
 
 dependencies {
     implementation(project(':'))
-    implementation 'com.google.code.gson:gson:2.9.0'
+    implementation 'com.google.code.gson:gson:2.11.0'
 }
 
 gradlePlugin {
     website = 'https://github.com/neoforged/JarCompatibilityChecker'
-    vcsUrl  = 'https://github.com/neoforged/JarCompatibilityChecker.git'
+    vcsUrl = 'https://github.com/neoforged/JarCompatibilityChecker.git'
 
     plugins {
         jcc {
@@ -42,5 +49,14 @@ gradlePlugin {
 publishing {
     repositories {
         maven gradleutils.publishingMaven
+    }
+}
+
+gradle.taskGraph.whenReady {
+    tasks.withType(PublishToMavenRepository) { PublishToMavenRepository t ->
+        if (t.repository.name == "sonatype") {
+            logger.lifecycle("Disabling task `{}` because it publishes to Sonatype", t.path)
+            t.enabled = false
+        }
     }
 }

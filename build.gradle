@@ -18,6 +18,7 @@ java.toolchain.languageVersion = JavaLanguageVersion.of(8)
 
 gradleutils {
     setupSigning()
+    setupCentralPublishing()
 }
 
 ext {

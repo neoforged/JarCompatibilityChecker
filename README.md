@@ -15,18 +15,18 @@ This means that there may be changes between the base JAR and concrete JAR which
 ```groovy
 repositories {
     maven {
-        url = 'https://maven.minecraftforge.net/'
+        url = 'https://maven.neoforged.net/releases'
     }
 }
 
 dependencies {
-    implementation 'net.minecraftforge:JarCompatibilityChecker:0.1.+'
+    implementation 'net.neoforged:jarcompatibilitychecker:0.1.+'
 }
 ```
 
 For command-line usage, the `all` classifier JAR can be downloaded and used.
 For usage from inside other libraries, the no-classifier JAR can be referenced through gradle.
-The main entrypoint for other libraries is the `net.minecraftforge.jarcompatibilitychecker.JarCompatibilityChecker` class.
+The main entrypoint for other libraries is the `net.neoforged.jarcompatibilitychecker.JarCompatibilityChecker` class.
 
 ## Note on Terminology
 JarCompatibilityChecker and the Java Language Specification have different meanings for binary compatibility.
@@ -35,3 +35,9 @@ Compatible means that a member still exists in the concrete JAR, its type or par
 For the Java Language Specification, binary compatibility means a new version of a JAR does not break other binaries depending on previous versions of that JAR.
 Binaries can normally only reference public and protected members of another JAR,
 so this definition of binary compatibility is more in line with JarCompatibilityChecker's definition of API compatibility.
+
+## Gradle Plugin
+A Gradle plugin with the ID `net.neoforged.jarcompatibilitychecker` is also provided.  
+This Gradle plugin registers a `checkJarCompatibility` task that outputs the api/binary (configurable) changes since the last release
+(determined through the base commit of the PR in a GitHub action run, otherwise the latest version, and a list of known repositories to pull the artifact from).  
+The plugin is intended to be used alongside the [Jar Compatibility action](https://github.com/neoforged/action-jar-compatibility).
