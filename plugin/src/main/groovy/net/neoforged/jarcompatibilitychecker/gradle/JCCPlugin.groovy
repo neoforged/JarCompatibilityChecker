@@ -12,6 +12,8 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.jvm.tasks.Jar
 
+import java.util.function.Predicate
+
 class JCCPlugin implements Plugin<Project> {
     static final Logger LOG = LogManager.getLogger(JCCPlugin)
 
@@ -26,7 +28,7 @@ class JCCPlugin implements Plugin<Project> {
             final globalOutputFile = target.rootProject.file('jcc.json')
             final providers = target.providers
             final ciSystemEnv = target.providers.environmentVariable('CI')
-            target.tasks.register('checkJarCompatibility', CompatibilityTask, target.layout, target.providers).configure {
+            target.tasks.register('checkJarCompatibility', CompatibilityTask, target.layout, providers, providers.provider { target.version }).configure {
                 it.inputJar.set(jarTask.flatMap { it.archiveFile })
                 it.artifact.set(group.<String>map { Object gr -> gr.toString() + ':' + jarTask.get().archiveBaseName.get() })
                 it.libraries.from(compileCp)
@@ -36,7 +38,7 @@ class JCCPlugin implements Plugin<Project> {
         }
     }
 
-    static Provider<String> providePreviousVersion(ProviderFactory objects, Provider<List<String>> mavens, Provider<String> artifact) {
+    static Provider<String> providePreviousVersion(ProviderFactory objects, Provider<List<String>> mavens, Provider<String> artifact, Provider<Predicate<String>> validVersion) {
         return objects.gradleProperty('GITHUB_EVENT_PATH')
             .map {
                 final path = new File(it)
@@ -70,24 +72,29 @@ class JCCPlugin implements Plugin<Project> {
 
                 return null
             }
-            .orElse(mavens.map { mvns ->
+            .orElse(validVersion.flatMap { predicate -> mavens.map { mvns ->
                 final art = artifact.get().split(':', 2)
                 for (final maven : mvns) {
                     final url = "${maven}/${art[0].replace('.', '/')}/${art[1]}/maven-metadata.xml"
                     try {
-                        final latestVersion = new XmlSlurper().parse(url).versioning?.latest?.text() as String
+                        final latestVersions = new XmlSlurper().parse(url).versioning?.versions?.version as NodeList
                         LOG.debug("Found artifact ${artifact.get()} @ maven ${maven}")
-                        return latestVersion
+                        for (int i = latestVersions.size() - 1; i >= 0; i--) {
+                            final latestVersion = latestVersions[i].toString()
+                            if (predicate.test(latestVersion)) {
+                                return latestVersion
+                            }
+                        }
                     } catch (Throwable ignored) {
 
                     }
                 }
                 return null
-            })
+            }})
     }
 
-    static Provider<RegularFile> provideLastVersion(Provider<RegularFile> _file, ProviderFactory objects, Provider<List<String>> mavens, Provider<String> artifact, Provider<String> classifier) {
-        return providePreviousVersion(objects, mavens, artifact)
+    static Provider<RegularFile> provideLastVersion(Provider<RegularFile> _file, ProviderFactory objects, Provider<List<String>> mavens, Provider<String> artifact, Provider<String> classifier, Provider<Predicate<String>> tester) {
+        return providePreviousVersion(objects, mavens, artifact, tester)
             .flatMap { version ->
                 _file.flatMap { file ->
                     return artifact.flatMap { art ->
