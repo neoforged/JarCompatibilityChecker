@@ -26,7 +26,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -41,7 +40,11 @@ public class ClassInfoCache {
 
         readJar(jarFile, cache.mainClasses);
         for (File libFile : libraries) {
-            readJar(libFile, cache.libClasses);
+            if (libFile.isDirectory()) {
+                readFolder(libFile.toPath(), cache.libClasses);
+            } else {
+                readJar(libFile, cache.libClasses);
+            }
         }
 
         return cache;
@@ -68,7 +71,11 @@ public class ClassInfoCache {
 
         readJar(jarPath, cache.mainClasses);
         for (Path libPath : libraries) {
-            readJar(libPath, cache.libClasses);
+            if (Files.isDirectory(libPath)) {
+                readFolder(libPath, cache.libClasses);
+            } else {
+                readJar(libPath, cache.libClasses);
+            }
         }
 
         return cache;
@@ -87,7 +94,11 @@ public class ClassInfoCache {
 
         readFolder(folder, cache.mainClasses);
         for (Path libPath : libraries) {
-            readJar(libPath, cache.libClasses);
+            if (Files.isDirectory(libPath)) {
+                readFolder(libPath, cache.libClasses);
+            } else {
+                readJar(libPath, cache.libClasses);
+            }
         }
 
         return cache;
