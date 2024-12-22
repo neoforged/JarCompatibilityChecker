@@ -29,7 +29,7 @@ abstract class CompatibilityTask extends DefaultTask {
         baseJar.set(JCCPlugin.provideLastVersion(
                 taskDir.map { it.file('input.jar') }, objects, mavens, artifact, classifier,
                 getVersionComponentTest().orElse(VersionComponentTest.MAJOR)
-                    .flatMap { t -> version.<Predicate<String>>flatMap { ver -> t.predicate(ver) }}
+                    .flatMap { t -> version.map { ver -> t.predicate(ver) }}
         ))
         isAPI.convention(true)
         getMavens().convention(['https://maven.neoforged.net/releases', 'https://repo1.maven.org/maven2'])
