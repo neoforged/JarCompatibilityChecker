@@ -29,6 +29,7 @@ repositories {
 dependencies {
     implementation(project(':'))
     implementation 'com.google.code.gson:gson:2.11.0'
+    implementation 'org.apache.maven:maven-artifact:3.9.11'
 }
 
 gradlePlugin {

@@ -5,6 +5,7 @@ import groovy.transform.CompileStatic
 import groovy.xml.XmlSlurper
 import org.apache.log4j.LogManager
 import org.apache.log4j.Logger
+import org.apache.maven.artifact.versioning.ComparableVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFile
@@ -79,12 +80,14 @@ class JCCPlugin implements Plugin<Project> {
                     try {
                         final latestVersions = new XmlSlurper().parse(url).versioning?.versions?.version as NodeList
                         LOG.debug("Found artifact ${artifact.get()} @ maven ${maven}")
+                        ComparableVersion latestFound = null
                         for (int i = latestVersions.size() - 1; i >= 0; i--) {
-                            final latestVersion = latestVersions[i].toString()
-                            if (predicate.test(latestVersion)) {
-                                return latestVersion
+                            final latestVersion = new ComparableVersion(latestVersions[i].toString())
+                            if (predicate.test(latestVersion.toString()) && (latestFound === null || latestVersion > latestFound)) {
+                                latestFound = latestVersion
                             }
                         }
+                        return latestFound?.toString()
                     } catch (Throwable ignored) {
 
                     }
