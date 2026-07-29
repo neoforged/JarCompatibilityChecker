@@ -7,6 +7,23 @@ Compatibility modes:
 - **API** - Checks for compatibility between the public and protected members (API) of the base JAR and concrete JAR
 - **Binary** - Checks for binary compatibility between all members, both public and private, of the base JAR and concrete JAR
 
+Additional API policy flags:
+- `--non-extendable-api-check-mode SKIP|WARN|ERROR` - Controls extension-only incompatibilities on base API elements marked with configured non-extendable annotations.
+  The default is `ERROR`, preserving strict compatibility unless this policy is explicitly enabled.
+  `WARN` records applicable incompatibilities as warnings instead of errors.
+  `SKIP` suppresses applicable incompatibilities.
+- `--non-extendable-api-annotation <annotation>` - Configures the marker annotations for non-extendable API.
+  This option may be repeated and defaults to `org.jetbrains.annotations.ApiStatus$NonExtendable` (`Lorg/jetbrains/annotations/ApiStatus$NonExtendable;`).
+  Annotation names may be passed as Java binary class names or JVM descriptors.
+  This lets public, non-extensible APIs evolve without failing compatibility checks for changes that only affect unsupported external implementations or overrides:
+  - making a non-extendable class final;
+  - making a method abstract on a non-extendable type;
+  - making a method final on a non-extendable type, or on a method directly marked `@ApiStatus.NonExtendable`.
+  This flag does not relax binary compatibility checks.
+- `--internal-annotation-check-mode WARN|SKIP|ERROR` and `--internal-annotation <annotation>` - Controls the separate internal API policy.
+  By default, `org.jetbrains.annotations.ApiStatus$Internal` is treated as an internal API marker and internal incompatibilities are warnings.
+  This is separate from `@ApiStatus.NonExtendable`: internal API means "not public API", while non-extendable API means "public to use, unsupported to implement or subclass."
+
 It is not a goal of this tool to check for source compatibility.
 Because it operates on compiled class files located inside JARs, the tool only looks for incompatibilities that could cause exceptions and crashes at runtime.
 This means that there may be changes between the base JAR and concrete JAR which cause a source incompatibility but are not reported by this tool as it is still compatible at runtime.
@@ -41,3 +58,14 @@ A Gradle plugin with the ID `net.neoforged.jarcompatibilitychecker` is also prov
 This Gradle plugin registers a `checkJarCompatibility` task that outputs the api/binary (configurable) changes since the last release
 (determined through the base commit of the PR in a GitHub action run, otherwise the latest version, and a list of known repositories to pull the artifact from).  
 The plugin is intended to be used alongside the [Jar Compatibility action](https://github.com/neoforged/action-jar-compatibility).
+
+The Gradle task can opt in to non-extendable API compatibility:
+
+```groovy
+tasks.named('checkJarCompatibility') {
+    nonExtendableApiCheckMode.set(net.neoforged.jarcompatibilitychecker.core.NonExtendableApiCheckMode.WARN)
+    nonExtendableApiAnnotations.set([
+        'org.jetbrains.annotations.ApiStatus$NonExtendable'
+    ])
+}
+```

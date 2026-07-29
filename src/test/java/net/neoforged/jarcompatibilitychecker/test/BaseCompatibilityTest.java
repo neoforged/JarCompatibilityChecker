@@ -39,6 +39,13 @@ public abstract class BaseCompatibilityTest {
             throw new IllegalArgumentException("Must provide at least one incompatibility to test");
 
         ClassInfoComparisonResults comparisonResults = getComparisonResults(checkBinary, folder, className);
+        assertIncompatible(comparisonResults, className, testIncompatibilities);
+    }
+
+    protected void assertIncompatible(ClassInfoComparisonResults comparisonResults, String className, IncompatibilityData... testIncompatibilities) {
+        if (testIncompatibilities.length == 0)
+            throw new IllegalArgumentException("Must provide at least one incompatibility to test");
+
         Assert.assertFalse(className + " was compatible when incompatibilities were expected", comparisonResults.isCompatible());
 
         List<Incompatibility<?>> incompatibilities = comparisonResults.getIncompatibilities();
@@ -58,8 +65,16 @@ public abstract class BaseCompatibilityTest {
         assertClassIncompatible(checkBinary, folder, className, true, message, formatArgs);
     }
 
+    protected void assertClassIncompatible(ClassInfoComparisonResults comparisonResults, String className, String message, Object... formatArgs) {
+        assertClassIncompatible(comparisonResults, className, true, message, formatArgs);
+    }
+
     protected void assertClassIncompatible(boolean checkBinary, String folder, String className, boolean isError, String message, Object... formatArgs) {
         assertIncompatible(checkBinary, folder, className, className, null, isError, message, formatArgs);
+    }
+
+    protected void assertClassIncompatible(ClassInfoComparisonResults comparisonResults, String className, boolean isError, String message, Object... formatArgs) {
+        assertIncompatible(comparisonResults, className, className, null, isError, message, formatArgs);
     }
 
     protected void assertIncompatible(boolean checkBinary, String folder, String className, String name, @Nullable String desc, String message, Object... formatArgs) {
@@ -70,6 +85,13 @@ public abstract class BaseCompatibilityTest {
         if (formatArgs.length > 0)
             message = String.format(Locale.ROOT, message, formatArgs);
         ClassInfoComparisonResults comparisonResults = getComparisonResults(checkBinary, folder, className);
+        assertIncompatible(comparisonResults, className, name, desc, isError, message);
+    }
+
+    protected void assertIncompatible(ClassInfoComparisonResults comparisonResults, String className, String name, @Nullable String desc, boolean isError, String message,
+            Object... formatArgs) {
+        if (formatArgs.length > 0)
+            message = String.format(Locale.ROOT, message, formatArgs);
         Assert.assertFalse(className + " was compatible when incompatibilities were expected", comparisonResults.isCompatible());
 
         List<Incompatibility<?>> incompatibilities = comparisonResults.getIncompatibilities();
@@ -84,10 +106,19 @@ public abstract class BaseCompatibilityTest {
 
     protected void assertCompatible(boolean checkBinary, String folder, String className) {
         ClassInfoComparisonResults comparisonResults = getComparisonResults(checkBinary, folder, className);
+        assertCompatible(comparisonResults, className);
+    }
+
+    protected void assertCompatible(ClassInfoComparisonResults comparisonResults, String className) {
         Assert.assertTrue(className + " had incompatibilities when none were expected: " + comparisonResults, comparisonResults.isCompatible());
     }
 
     protected ClassInfoComparisonResults getComparisonResults(boolean checkBinary, String folderName, String className) {
+        return getComparisonResults(folderName, className, (baseCache, baseClassInfo, inputCache, inputClassInfo) ->
+                ClassInfoComparer.compare(checkBinary, baseCache, baseClassInfo, inputCache, inputClassInfo));
+    }
+
+    protected ClassInfoComparisonResults getComparisonResults(String folderName, String className, Comparison comparison) {
         try {
             Path folder = getRoot().resolve(folderName);
             if (!folder.toRealPath().toString().equals(folder.toAbsolutePath().toString()))
@@ -108,10 +139,15 @@ public abstract class BaseCompatibilityTest {
             ClassInfo baseClassInfo = baseCache.getMainClassInfo(className);
             Assert.assertNotNull("Class with name " + className + " not found in " + baseFolder, baseClassInfo);
 
-            return ClassInfoComparer.compare(checkBinary, baseCache, baseClassInfo, inputCache, inputCache.getMainClassInfo(className));
+            return comparison.compare(baseCache, baseClassInfo, inputCache, inputCache.getMainClassInfo(className));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @FunctionalInterface
+    protected interface Comparison {
+        ClassInfoComparisonResults compare(ClassInfoCache baseCache, ClassInfo baseClassInfo, ClassInfoCache inputCache, @Nullable ClassInfo inputClassInfo);
     }
 
     protected static class IncompatibilityData {

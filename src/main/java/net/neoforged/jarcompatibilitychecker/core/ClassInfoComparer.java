@@ -42,12 +42,22 @@ public class ClassInfoComparer {
     public static ClassInfoComparisonResults compare(boolean checkBinary, @Nullable AnnotationCheckMode annotationCheckMode,
             List<String> internalAnnotations, InternalAnnotationCheckMode internalAnnotationCheckMode, ClassInfoCache baseCache, ClassInfo baseClassInfo,
             ClassInfoCache concreteCache, @Nullable ClassInfo concreteClassInfo) {
+        return compare(checkBinary, annotationCheckMode, internalAnnotations, internalAnnotationCheckMode, NonExtendableApiCheckMode.DEFAULT_MODE,
+                NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS, baseCache, baseClassInfo, concreteCache, concreteClassInfo);
+    }
+
+    public static ClassInfoComparisonResults compare(boolean checkBinary, @Nullable AnnotationCheckMode annotationCheckMode,
+            List<String> internalAnnotations, InternalAnnotationCheckMode internalAnnotationCheckMode, NonExtendableApiCheckMode nonExtendableApiCheckMode,
+            List<String> nonExtendableApiAnnotations, ClassInfoCache baseCache, ClassInfo baseClassInfo, ClassInfoCache concreteCache, @Nullable ClassInfo concreteClassInfo) {
+        internalAnnotations = ApiStatusCompatibility.normalizeAnnotationDescriptors(internalAnnotations);
+        nonExtendableApiAnnotations = ApiStatusCompatibility.normalizeAnnotationDescriptors(nonExtendableApiAnnotations);
         ClassInfoComparisonResults results = new ClassInfoComparisonResults(baseClassInfo);
         String name = baseClassInfo.getName();
         int idx = name.lastIndexOf('/');
         String packageInfoName = name.substring(0, idx + 1) + "package-info";
         ClassInfo packageInfo = baseCache.getMainClassInfo(packageInfoName);
         boolean classInternal = isInternalApi(baseClassInfo, internalAnnotations, internalAnnotationCheckMode, packageInfo);
+        NonExtendableApiCompatibility nonExtendableApiCompatibility = new NonExtendableApiCompatibility(checkBinary, nonExtendableApiCheckMode, nonExtendableApiAnnotations);
 
         if (classInternal && internalAnnotationCheckMode == InternalAnnotationCheckMode.SKIP)
             return results;
@@ -76,7 +86,10 @@ public class ClassInfoComparer {
         }
 
         if (isMadeFinal(checkBinary, baseClassInfo.access, concreteClassInfo.access)) {
-            results.addClassIncompatibility(baseClassInfo, IncompatibilityMessages.CLASS_MADE_FINAL, isClassError);
+            IncompatibilitySeverity severity = nonExtendableApiCompatibility.getSeverity(isClassError, baseClassInfo);
+            if (severity.shouldReport()) {
+                results.addClassIncompatibility(baseClassInfo, IncompatibilityMessages.CLASS_MADE_FINAL, severity.isError());
+            }
         }
 
         checkAnnotations(annotationCheckMode, results, baseClassInfo, isClassError, baseClassInfo.annotations, concreteClassInfo.annotations);
@@ -142,11 +155,17 @@ public class ClassInfoComparer {
             }
 
             if (isMadeAbstract(classVisible, baseInfo.access, inputInfo.access)) {
-                results.addMethodIncompatibility(baseInfo, IncompatibilityMessages.METHOD_MADE_ABSTRACT, isMethodError);
+                IncompatibilitySeverity severity = nonExtendableApiCompatibility.getSeverity(isMethodError, baseClassInfo);
+                if (severity.shouldReport()) {
+                    results.addMethodIncompatibility(baseInfo, IncompatibilityMessages.METHOD_MADE_ABSTRACT, severity.isError());
+                }
             }
 
             if (!classFinal && isMadeFinal(checkBinary, baseInfo.access, inputInfo.access)) {
-                results.addMethodIncompatibility(baseInfo, IncompatibilityMessages.METHOD_MADE_FINAL, isMethodError);
+                IncompatibilitySeverity severity = nonExtendableApiCompatibility.getSeverity(isMethodError, baseInfo);
+                if (severity.shouldReport()) {
+                    results.addMethodIncompatibility(baseInfo, IncompatibilityMessages.METHOD_MADE_FINAL, severity.isError());
+                }
             }
 
             checkAnnotations(annotationCheckMode, results, baseInfo, isMethodError, baseInfo.annotations, inputInfo.annotations);
@@ -157,7 +176,10 @@ public class ClassInfoComparer {
                 continue;
 
             if (classVisible && (concreteInfo.access & Opcodes.ACC_ABSTRACT) != 0) {
-                results.addMethodIncompatibility(concreteInfo, IncompatibilityMessages.METHOD_MADE_ABSTRACT);
+                IncompatibilitySeverity severity = nonExtendableApiCompatibility.getSeverity(true, baseClassInfo);
+                if (severity.shouldReport()) {
+                    results.addMethodIncompatibility(concreteInfo, IncompatibilityMessages.METHOD_MADE_ABSTRACT, severity.isError());
+                }
             }
         }
 
@@ -194,6 +216,39 @@ public class ClassInfoComparer {
         }
 
         return results;
+    }
+
+    private static final class NonExtendableApiCompatibility {
+        private final boolean checkBinary;
+        private final NonExtendableApiCheckMode checkMode;
+        private final List<String> annotations;
+
+        private NonExtendableApiCompatibility(boolean checkBinary, NonExtendableApiCheckMode checkMode, List<String> annotations) {
+            this.checkBinary = checkBinary;
+            this.checkMode = checkMode;
+            this.annotations = annotations;
+        }
+
+        private IncompatibilitySeverity getSeverity(boolean defaultIsError, MemberInfo memberInfo) {
+            boolean nonExtendableApiChange = ApiStatusCompatibility.isNonExtendableApiChange(this.checkBinary, this.checkMode, this.annotations, memberInfo);
+            if (ApiStatusCompatibility.shouldSkip(this.checkMode, nonExtendableApiChange))
+                return IncompatibilitySeverity.SKIP;
+            return ApiStatusCompatibility.shouldError(defaultIsError, nonExtendableApiChange) ? IncompatibilitySeverity.ERROR : IncompatibilitySeverity.WARNING;
+        }
+    }
+
+    private enum IncompatibilitySeverity {
+        SKIP,
+        WARNING,
+        ERROR;
+
+        private boolean shouldReport() {
+            return this != SKIP;
+        }
+
+        private boolean isError() {
+            return this == ERROR;
+        }
     }
 
     public static boolean isVisibilityLowered(boolean checkBinary, int baseAccess, int inputAccess) {

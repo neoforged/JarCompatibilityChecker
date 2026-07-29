@@ -31,5 +31,5 @@ public enum InternalAnnotationCheckMode {
     ERROR;
 
     public static final InternalAnnotationCheckMode DEFAULT_MODE = WARN;
-    public static final List<String> DEFAULT_INTERNAL_ANNOTATIONS = ImmutableList.of("Lorg/jetbrains/annotations/ApiStatus$Internal;");
+    public static final List<String> DEFAULT_INTERNAL_ANNOTATIONS = ImmutableList.of(ApiStatusCompatibility.INTERNAL);
 }

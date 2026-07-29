@@ -4,6 +4,7 @@ import groovy.json.JsonBuilder
 import groovy.json.JsonSlurper
 import groovy.transform.CompileStatic
 import net.neoforged.jarcompatibilitychecker.ConsoleTool
+import net.neoforged.jarcompatibilitychecker.core.NonExtendableApiCheckMode
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.ProjectLayout
@@ -32,6 +33,8 @@ abstract class CompatibilityTask extends DefaultTask {
                     .flatMap { t -> version.map { ver -> t.predicate(ver) }}
         ))
         isAPI.convention(true)
+        nonExtendableApiCheckMode.convention(NonExtendableApiCheckMode.DEFAULT_MODE)
+        nonExtendableApiAnnotations.convention(NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS)
         getMavens().convention(['https://maven.neoforged.net/releases', 'https://repo1.maven.org/maven2'])
     }
 
@@ -63,6 +66,14 @@ abstract class CompatibilityTask extends DefaultTask {
     @Input
     @Optional
     abstract Property<Boolean> getIsAPI()
+
+    @Input
+    @Optional
+    abstract Property<NonExtendableApiCheckMode> getNonExtendableApiCheckMode()
+
+    @Input
+    @Optional
+    abstract ListProperty<String> getNonExtendableApiAnnotations()
 
     @InputFiles
     abstract ConfigurableFileCollection getLibraries()
@@ -101,6 +112,15 @@ abstract class CompatibilityTask extends DefaultTask {
         if (output.isPresent()) {
             inputs.add('--output')
             inputs.add(output.asFile.get().absolutePath)
+        }
+
+        if (nonExtendableApiCheckMode.get() != NonExtendableApiCheckMode.DEFAULT_MODE) {
+            inputs.add('--non-extendable-api-check-mode')
+            inputs.add(nonExtendableApiCheckMode.get().name())
+            getNonExtendableApiAnnotations().get().forEach { String annotation ->
+                inputs.add('--non-extendable-api-annotation')
+                inputs.add(annotation)
+            }
         }
 
         libraries.forEach {

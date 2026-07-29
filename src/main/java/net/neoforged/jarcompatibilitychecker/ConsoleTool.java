@@ -20,6 +20,7 @@ import joptsimple.util.EnumConverter;
 import net.neoforged.jarcompatibilitychecker.core.AnnotationCheckMode;
 import net.neoforged.jarcompatibilitychecker.core.ClassInfoComparisonResults;
 import net.neoforged.jarcompatibilitychecker.core.InternalAnnotationCheckMode;
+import net.neoforged.jarcompatibilitychecker.core.NonExtendableApiCheckMode;
 import net.neoforged.jarcompatibilitychecker.json.JCCJsonEncoder;
 
 import java.io.File;
@@ -44,12 +45,20 @@ public class ConsoleTool {
             OptionSpec<File> concreteLibO = parser.acceptsAll(ImmutableList.of("concrete-lib", "concrete-library"), "Libraries that only the input JAR uses").withRequiredArg().ofType(File.class);
             OptionSpec<AnnotationCheckMode> annotationCheckModeO = parser.acceptsAll(ImmutableList.of("annotation-check-mode", "ann-mode"), "What mode to use for checking annotations")
                     .withRequiredArg().withValuesConvertedBy(new EnumConverter<AnnotationCheckMode>(AnnotationCheckMode.class) {});
-            OptionSpec<String> internalAnnotationO = parser.acceptsAll(ImmutableList.of("internal-annotation", "internal-ann"), "The fully resolved classname of an allowed internal API annotation")
+            OptionSpec<String> internalAnnotationO = parser.acceptsAll(ImmutableList.of("internal-annotation", "internal-ann"), "The binary classname or JVM descriptor of an allowed internal API annotation. Defaults to org.jetbrains.annotations.ApiStatus$Internal.")
                     .withRequiredArg().defaultsTo(InternalAnnotationCheckMode.DEFAULT_INTERNAL_ANNOTATIONS.toArray(new String[0]));
             OptionSpec<InternalAnnotationCheckMode> internalAnnotationCheckModeO = parser.acceptsAll(
                     ImmutableList.of("internal-annotation-check-mode", "internal-ann-mode"),
-                    "What mode to use for checking elements marked with an internal API annotation"
+                    "What mode to use for checking elements marked with an internal API annotation, separately from non-extendable API compatibility"
             ).withRequiredArg().withValuesConvertedBy(new EnumConverter<InternalAnnotationCheckMode>(InternalAnnotationCheckMode.class) {}).defaultsTo(InternalAnnotationCheckMode.DEFAULT_MODE);
+            OptionSpec<NonExtendableApiCheckMode> nonExtendableApiCheckModeO = parser.acceptsAll(
+                    ImmutableList.of("non-extendable-api-check-mode", "non-extendable-api-mode"),
+                    "What mode to use for checking extension-only incompatibilities on elements marked with a non-extendable API annotation"
+            ).withRequiredArg().withValuesConvertedBy(new EnumConverter<NonExtendableApiCheckMode>(NonExtendableApiCheckMode.class) {}).defaultsTo(NonExtendableApiCheckMode.DEFAULT_MODE);
+            OptionSpec<String> nonExtendableApiAnnotationO = parser.acceptsAll(
+                    ImmutableList.of("non-extendable-api-annotation", "non-extendable-api-ann"),
+                    "The binary classname or JVM descriptor of an annotation that marks non-extendable API. Defaults to org.jetbrains.annotations.ApiStatus$NonExtendable."
+            ).withRequiredArg().defaultsTo(NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS.toArray(new String[0]));
             OptionSpec<Void> failO = parser.accepts("fail", "If enabled, the tool will fail if incompatibilities are detected");
             OptionSpec<File> outputO = parser.accepts("output", "A file to which the incompatibilities should be dumped to").withRequiredArg().ofType(File.class);
 
@@ -73,10 +82,12 @@ public class ConsoleTool {
             AnnotationCheckMode annotationCheckMode = options.valueOf(annotationCheckModeO);
             List<String> internalAnnotations = options.valuesOf(internalAnnotationO);
             InternalAnnotationCheckMode internalAnnotationCheckMode = options.valueOf(internalAnnotationCheckModeO);
+            NonExtendableApiCheckMode nonExtendableApiCheckMode = options.valueOf(nonExtendableApiCheckModeO);
+            List<String> nonExtendableApiAnnotations = options.valuesOf(nonExtendableApiAnnotationO);
 
             // TODO allow logging to a file
             JarCompatibilityChecker checker = new JarCompatibilityChecker(baseJar, inputJar, checkBinary, annotationCheckMode, internalAnnotations, internalAnnotationCheckMode,
-                    commonLibs, baseLibs, concreteLibs, System.out::println, System.err::println);
+                    nonExtendableApiCheckMode, nonExtendableApiAnnotations, commonLibs, baseLibs, concreteLibs, System.out::println, System.err::println);
 
             Map.Entry<Integer, List<ClassInfoComparisonResults>> incompatibilities = checker.check();
 
