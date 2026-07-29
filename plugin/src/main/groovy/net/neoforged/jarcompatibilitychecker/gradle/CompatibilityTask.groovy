@@ -114,10 +114,15 @@ abstract class CompatibilityTask extends DefaultTask {
             inputs.add(output.asFile.get().absolutePath)
         }
 
-        if (nonExtendableApiCheckMode.get() != NonExtendableApiCheckMode.DEFAULT_MODE) {
+        final NonExtendableApiCheckMode nonExtendableApiMode = nonExtendableApiCheckMode.get()
+        if (nonExtendableApiMode != NonExtendableApiCheckMode.DEFAULT_MODE) {
             inputs.add('--non-extendable-api-check-mode')
-            inputs.add(nonExtendableApiCheckMode.get().name())
-            getNonExtendableApiAnnotations().get().forEach { String annotation ->
+            inputs.add(nonExtendableApiMode.name())
+        }
+
+        final List<String> nonExtendableAnnotations = getNonExtendableApiAnnotations().get()
+        if (nonExtendableAnnotations != NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS) {
+            nonExtendableAnnotations.forEach { String annotation ->
                 inputs.add('--non-extendable-api-annotation')
                 inputs.add(annotation)
             }

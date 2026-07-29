@@ -13,7 +13,7 @@ import java.util.List;
  * This enum determines the check mode for extension-only incompatibilities on elements marked with non-extendable API annotations.
  * A non-extendable API annotation can be used to mark a public API element as unsupported for external implementation, subclassing, or overriding.
  * <p>
- * By default, the {@linkplain #ERROR} mode is used so existing checks remain strict unless this policy is enabled.
+ * By default, the {@linkplain #WARN} mode is used so extension-only incompatibilities are reported without failing compatibility checks.
  */
 public enum NonExtendableApiCheckMode {
     /**
@@ -29,6 +29,6 @@ public enum NonExtendableApiCheckMode {
      */
     ERROR;
 
-    public static final NonExtendableApiCheckMode DEFAULT_MODE = ERROR;
+    public static final NonExtendableApiCheckMode DEFAULT_MODE = WARN;
     public static final List<String> DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS = ImmutableList.of(ApiStatusCompatibility.NON_EXTENDABLE);
 }

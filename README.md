@@ -9,8 +9,8 @@ Compatibility modes:
 
 Additional API policy flags:
 - `--non-extendable-api-check-mode SKIP|WARN|ERROR` - Controls extension-only incompatibilities on base API elements marked with configured non-extendable annotations.
-  The default is `ERROR`, preserving strict compatibility unless this policy is explicitly enabled.
-  `WARN` records applicable incompatibilities as warnings instead of errors.
+  The default is `WARN`, recording applicable incompatibilities as warnings instead of errors.
+  `ERROR` preserves strict compatibility checks.
   `SKIP` suppresses applicable incompatibilities.
 - `--non-extendable-api-annotation <annotation>` - Configures the marker annotations for non-extendable API.
   This option may be repeated and defaults to `org.jetbrains.annotations.ApiStatus$NonExtendable` (`Lorg/jetbrains/annotations/ApiStatus$NonExtendable;`).
@@ -59,11 +59,11 @@ This Gradle plugin registers a `checkJarCompatibility` task that outputs the api
 (determined through the base commit of the PR in a GitHub action run, otherwise the latest version, and a list of known repositories to pull the artifact from).  
 The plugin is intended to be used alongside the [Jar Compatibility action](https://github.com/neoforged/action-jar-compatibility).
 
-The Gradle task can opt in to non-extendable API compatibility:
+The Gradle task uses non-extendable API compatibility by default, and can customize the mode or marker annotations:
 
 ```groovy
 tasks.named('checkJarCompatibility') {
-    nonExtendableApiCheckMode.set(net.neoforged.jarcompatibilitychecker.core.NonExtendableApiCheckMode.WARN)
+    nonExtendableApiCheckMode.set(net.neoforged.jarcompatibilitychecker.core.NonExtendableApiCheckMode.SKIP)
     nonExtendableApiAnnotations.set([
         'org.jetbrains.annotations.ApiStatus$NonExtendable'
     ])

@@ -32,31 +32,28 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     // Cases that ApiStatus compatibility can downgrade or suppress
 
     @Test
-    public void testNonExtendableApiClassMadeFinalWarnsWhenOptedIn() {
-        // Making a non-extendable public class final can be downgraded to a warning
+    public void testNonExtendableApiClassMadeFinalWarnsByDefault() {
+        // Making a non-extendable public class final is reported as a warning by default
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
-                .withNonExtendableApiMode(NonExtendableApiCheckMode.WARN)
                 .withBaseClassAnnotation(NON_EXTENDABLE)
                 .assertClassWarning(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeAbstractWarnsWhenOptedIn() {
-        // Making a method abstract on a non-extendable type can be downgraded to a warning
+    public void testNonExtendableApiMethodMadeAbstractWarnsByDefault() {
+        // Making a method abstract on a non-extendable type is reported as a warning by default
         fixtureComparison("Method/PublicMethodMadeAbstract", "A")
                 .api()
-                .withNonExtendableApiMode(NonExtendableApiCheckMode.WARN)
                 .withBaseClassAnnotation(NON_EXTENDABLE)
                 .assertMemberWarning("thing", "()V", IncompatibilityMessages.METHOD_MADE_ABSTRACT);
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeFinalWarnsWhenOptedIn() {
-        // Making a method final on a non-extendable type can be downgraded to a warning
+    public void testNonExtendableApiMethodMadeFinalWarnsByDefault() {
+        // Making a method final on a non-extendable type is reported as a warning by default
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
                 .api()
-                .withNonExtendableApiMode(NonExtendableApiCheckMode.WARN)
                 .withBaseClassAnnotation(NON_EXTENDABLE)
                 .assertMemberWarning("thing", "()V", IncompatibilityMessages.METHOD_MADE_FINAL);
     }
@@ -66,7 +63,6 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
         // A method can be marked non-extendable directly
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
                 .api()
-                .withNonExtendableApiMode(NonExtendableApiCheckMode.WARN)
                 .withBaseMethodAnnotation("thing", "()V", NON_EXTENDABLE)
                 .assertMemberWarning("thing", "()V", IncompatibilityMessages.METHOD_MADE_FINAL);
     }
@@ -86,7 +82,6 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
         // Custom non-extendable annotations apply when configured
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
-                .withNonExtendableApiMode(NonExtendableApiCheckMode.WARN)
                 .withNonExtendableApiAnnotations(ImmutableList.of(CUSTOM_NON_EXTENDABLE))
                 .withBaseClassAnnotation(CUSTOM_NON_EXTENDABLE)
                 .assertClassWarning(IncompatibilityMessages.CLASS_MADE_FINAL);
@@ -97,7 +92,6 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
         // Configured annotations may use Java binary names instead of JVM descriptors
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
-                .withNonExtendableApiMode(NonExtendableApiCheckMode.WARN)
                 .withNonExtendableApiAnnotations(ImmutableList.of("org.jetbrains.annotations.ApiStatus$NonExtendable"))
                 .withBaseClassAnnotation(NON_EXTENDABLE)
                 .assertClassWarning(IncompatibilityMessages.CLASS_MADE_FINAL);
@@ -112,31 +106,34 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
                 .assertClassWarning(IncompatibilityMessages.API_CLASS_MISSING);
     }
 
-    // Cases that require opting in to ApiStatus compatibility
+    // Cases that can be kept strict with ERROR mode
 
     @Test
-    public void testNonExtendableApiClassMadeFinalWithoutOptInRemainsError() {
-        // Making a non-extendable public class final is still an error unless the non-extendable policy is enabled
+    public void testNonExtendableApiClassMadeFinalInErrorModeRemainsError() {
+        // ERROR mode preserves strict compatibility checks
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
+                .withNonExtendableApiMode(NonExtendableApiCheckMode.ERROR)
                 .withBaseClassAnnotation(NON_EXTENDABLE)
                 .assertClassError(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeAbstractWithoutOptInRemainsError() {
-        // Making a method abstract on a non-extendable type is still an error unless the non-extendable policy is enabled
+    public void testNonExtendableApiMethodMadeAbstractInErrorModeRemainsError() {
+        // ERROR mode preserves strict compatibility checks
         fixtureComparison("Method/PublicMethodMadeAbstract", "A")
                 .api()
+                .withNonExtendableApiMode(NonExtendableApiCheckMode.ERROR)
                 .withBaseClassAnnotation(NON_EXTENDABLE)
                 .assertMemberError("thing", "()V", IncompatibilityMessages.METHOD_MADE_ABSTRACT);
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeFinalWithoutOptInRemainsError() {
-        // Making a method final on a non-extendable type is still an error unless the non-extendable policy is enabled
+    public void testNonExtendableApiMethodMadeFinalInErrorModeRemainsError() {
+        // ERROR mode preserves strict compatibility checks
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
                 .api()
+                .withNonExtendableApiMode(NonExtendableApiCheckMode.ERROR)
                 .withBaseClassAnnotation(NON_EXTENDABLE)
                 .assertMemberError("thing", "()V", IncompatibilityMessages.METHOD_MADE_FINAL);
     }
