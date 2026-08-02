@@ -72,7 +72,10 @@ final class ApiStatusCompatibility {
             if (baseAnnotation == null && concreteAnnotation != null) {
                 results.addAnnotationIncompatibility(memberInfo, concreteAnnotation, IncompatibilityMessages.ANNOTATION_ADDED, isError);
             } else if (baseAnnotation != null && concreteAnnotation == null) {
-                results.addAnnotationIncompatibility(memberInfo, baseAnnotation, IncompatibilityMessages.ANNOTATION_REMOVED, isError);
+                // Removing an API-status marker widens the supported contract rather
+                // than breaking existing supported callers. Keep the contract change
+                // visible, but report it as a warning by default.
+                results.addAnnotationIncompatibility(memberInfo, baseAnnotation, IncompatibilityMessages.ANNOTATION_REMOVED, false);
             }
         }
     }

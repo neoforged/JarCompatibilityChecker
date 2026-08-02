@@ -133,12 +133,13 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testInternalAnnotationRemovedFromClassIsReportedAsError() {
-        // Removing @Internal adds the class to the supported API contract, so the
-        // annotation change is reported as an error.
+    public void testInternalAnnotationRemovedFromClassWarnsByDefault() {
+        // Removing @Internal adds the class to the supported API contract. That
+        // widens the contract, so the annotation change is reported as a warning.
         assertClassIncompatible(
                 compareApiStatusAnnotationChange(publicClass("A", INTERNAL), publicClass("A")),
                 "A",
+                false,
                 IncompatibilityMessages.ANNOTATION_REMOVED
         );
     }
@@ -158,15 +159,15 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testInternalAnnotationRemovedFromMethodIsReportedAsError() {
-        // Removing @Internal adds the method to the supported API contract, so the
-        // annotation change is reported as an error.
+    public void testInternalAnnotationRemovedFromMethodWarnsByDefault() {
+        // Removing @Internal adds the method to the supported API contract. That
+        // widens the contract, so the annotation change is reported as a warning.
         assertIncompatible(
                 compareApiStatusAnnotationChange(publicClassWithAnnotatedPublicMethod("A", INTERNAL), publicClassWithPublicMethod("A")),
                 "A",
                 METHOD_NAME,
                 METHOD_DESC,
-                true,
+                false,
                 IncompatibilityMessages.ANNOTATION_REMOVED
         );
     }
@@ -183,12 +184,13 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableAnnotationRemovedFromClassIsReportedAsError() {
-        // Removing @NonExtendable adds supported subclassing to the class contract, so
-        // the annotation change is reported as an error.
+    public void testNonExtendableAnnotationRemovedFromClassWarnsByDefault() {
+        // Removing @NonExtendable adds supported subclassing to the class contract.
+        // That widens the contract, so the annotation change is reported as a warning.
         assertClassIncompatible(
                 compareApiStatusAnnotationChange(publicClass("A", NON_EXTENDABLE), publicClass("A")),
                 "A",
+                false,
                 IncompatibilityMessages.ANNOTATION_REMOVED
         );
     }
@@ -208,15 +210,15 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableAnnotationRemovedFromMethodIsReportedAsError() {
-        // Removing @NonExtendable adds supported overriding to the method contract, so
-        // the annotation change is reported as an error.
+    public void testNonExtendableAnnotationRemovedFromMethodWarnsByDefault() {
+        // Removing @NonExtendable adds supported overriding to the method contract.
+        // That widens the contract, so the annotation change is reported as a warning.
         assertIncompatible(
                 compareApiStatusAnnotationChange(publicClassWithAnnotatedPublicMethod("A", NON_EXTENDABLE), publicClassWithPublicMethod("A")),
                 "A",
                 METHOD_NAME,
                 METHOD_DESC,
-                true,
+                false,
                 IncompatibilityMessages.ANNOTATION_REMOVED
         );
     }
@@ -357,7 +359,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
                 false,
                 null,
                 InternalAnnotationCheckMode.DEFAULT_INTERNAL_ANNOTATIONS,
-                InternalAnnotationCheckMode.ERROR,
+                InternalAnnotationCheckMode.DEFAULT_MODE,
                 NonExtendableApiCheckMode.DEFAULT_MODE,
                 NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS,
                 baseCache,
