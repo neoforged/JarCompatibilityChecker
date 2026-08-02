@@ -36,7 +36,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     // Cases that ApiStatus compatibility can downgrade or suppress
 
     @Test
-    public void testNonExtendableApiClassMadeFinalWarnsByDefault() {
+    public void nonExtendableApiClassMadeFinalWarnsByDefault() {
         // Making a public class final breaks external subclasses, but @NonExtendable
         // marks subclassing as not supported, so the break is downgraded to a warning.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
@@ -46,7 +46,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeAbstractWarnsByDefault() {
+    public void nonExtendableApiMethodMadeAbstractWarnsByDefault() {
         // Making a method abstract breaks subclasses that rely on the implementation,
         // but @NonExtendable marks subclassing as not supported, so the break is
         // downgraded to a warning.
@@ -57,7 +57,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeFinalWarnsByDefault() {
+    public void nonExtendableApiMethodMadeFinalWarnsByDefault() {
         // Making a method final breaks overrides, but @NonExtendable marks subclassing
         // as not supported, so the break is downgraded to a warning.
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
@@ -67,7 +67,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableMethodAnnotationAllowsMethodMadeFinal() {
+    public void nonExtendableMethodAnnotationAllowsMethodMadeFinal() {
         // Making a method final breaks overrides, but method-level @NonExtendable
         // marks overriding as not supported, so the break is downgraded to a warning.
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
@@ -77,7 +77,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableApiCheckModeSkipSuppressesAllowedIncompatibility() {
+    public void nonExtendableApiCheckModeSkipSuppressesAllowedIncompatibility() {
         // SKIP mode suppresses extension-only breaks when the API marks extension as
         // not supported, so the result remains compatible.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
@@ -88,7 +88,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testCustomNonExtendableAnnotationWarnsWhenConfigured() {
+    public void customNonExtendableAnnotationWarnsWhenConfigured() {
         // Configured custom markers use the same contract as @NonExtendable, so
         // extension-only breaks are downgraded to warnings.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
@@ -99,7 +99,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableAnnotationBinaryNameIsNormalized() {
+    public void nonExtendableAnnotationBinaryNameIsNormalized() {
         // Binary-name configuration resolves to the same marker descriptor, so the
         // same @NonExtendable compatibility policy applies.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
@@ -110,7 +110,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testInternalApiStatusCanWarnUsingSeparateCheckMode() {
+    public void internalApiStatusCanWarnUsingSeparateCheckMode() {
         // Deleting a visible class breaks callers, but @Internal marks the class as
         // not part of the supported API, so WARN mode downgrades the break to a warning.
         fixtureComparison("Class/InternalClassDeleted", "A")
@@ -122,7 +122,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     // ApiStatus marker annotations are compatibility-affecting API contract changes
 
     @Test
-    public void testInternalAnnotationAddedToClassIsReportedAsError() {
+    public void internalAnnotationAddedToClassIsReportedAsError() {
         // Adding @Internal removes the class from the supported API contract, so the
         // annotation change is reported as an error.
         assertClassIncompatible(
@@ -133,7 +133,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testInternalAnnotationRemovedFromClassWarnsByDefault() {
+    public void internalAnnotationRemovedFromClassWarnsByDefault() {
         // Removing @Internal adds the class to the supported API contract. That
         // widens the contract, so the annotation change is reported as a warning.
         assertClassIncompatible(
@@ -145,7 +145,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testInternalAnnotationAddedToMethodIsReportedAsError() {
+    public void internalAnnotationAddedToMethodIsReportedAsError() {
         // Adding @Internal removes the method from the supported API contract, so the
         // annotation change is reported as an error.
         assertIncompatible(
@@ -159,7 +159,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testInternalAnnotationRemovedFromMethodWarnsByDefault() {
+    public void internalAnnotationRemovedFromMethodWarnsByDefault() {
         // Removing @Internal adds the method to the supported API contract. That
         // widens the contract, so the annotation change is reported as a warning.
         assertIncompatible(
@@ -173,7 +173,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableAnnotationAddedToClassIsReportedAsError() {
+    public void nonExtendableAnnotationAddedToClassIsReportedAsError() {
         // Adding @NonExtendable removes supported subclassing from the class contract,
         // so the annotation change is reported as an error.
         assertClassIncompatible(
@@ -184,7 +184,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableAnnotationRemovedFromClassWarnsByDefault() {
+    public void nonExtendableAnnotationRemovedFromClassWarnsByDefault() {
         // Removing @NonExtendable adds supported subclassing to the class contract.
         // That widens the contract, so the annotation change is reported as a warning.
         assertClassIncompatible(
@@ -196,7 +196,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableAnnotationAddedToMethodIsReportedAsError() {
+    public void nonExtendableAnnotationAddedToMethodIsReportedAsError() {
         // Adding @NonExtendable removes supported overriding from the method contract,
         // so the annotation change is reported as an error.
         assertIncompatible(
@@ -210,7 +210,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableAnnotationRemovedFromMethodWarnsByDefault() {
+    public void nonExtendableAnnotationRemovedFromMethodWarnsByDefault() {
         // Removing @NonExtendable adds supported overriding to the method contract.
         // That widens the contract, so the annotation change is reported as a warning.
         assertIncompatible(
@@ -226,7 +226,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     // Cases that can be kept strict with ERROR mode
 
     @Test
-    public void testNonExtendableApiClassMadeFinalInErrorModeRemainsError() {
+    public void nonExtendableApiClassMadeFinalInErrorModeRemainsError() {
         // ERROR mode keeps extension-only breaks as errors, so finalizing the class
         // reports a subclassing compatibility break.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
@@ -237,7 +237,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeAbstractInErrorModeRemainsError() {
+    public void nonExtendableApiMethodMadeAbstractInErrorModeRemainsError() {
         // ERROR mode keeps extension-only breaks as errors, so making the method
         // abstract reports a subclassing compatibility break.
         fixtureComparison("Method/PublicMethodMadeAbstract", "A")
@@ -248,7 +248,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableApiMethodMadeFinalInErrorModeRemainsError() {
+    public void nonExtendableApiMethodMadeFinalInErrorModeRemainsError() {
         // ERROR mode keeps extension-only breaks as errors, so making the method final
         // reports an overriding compatibility break.
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
@@ -261,7 +261,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     // Cases that should still report errors even with the most permissive non-extendable mode
 
     @Test
-    public void testCustomNonExtendableAnnotationRequiresConfiguration() {
+    public void customNonExtendableAnnotationRequiresConfiguration() {
         // Unconfigured custom markers have no compatibility policy, so finalizing the
         // class reports a subclassing compatibility break.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
@@ -272,7 +272,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableBinaryClassMadeFinalRemainsError() {
+    public void nonExtendableBinaryClassMadeFinalRemainsError() {
         // Binary mode checks JVM compatibility, so API policy markers cannot downgrade
         // final-class breaks to warnings.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
@@ -283,7 +283,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableBinaryMethodMadeAbstractRemainsError() {
+    public void nonExtendableBinaryMethodMadeAbstractRemainsError() {
         // Binary mode checks JVM compatibility, so API policy markers cannot downgrade
         // abstract-method breaks to warnings.
         fixtureComparison("Method/PublicMethodMadeAbstract", "A")
@@ -294,7 +294,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testNonExtendableDoesNotAllowUnrelatedIncompatibilities() {
+    public void nonExtendableDoesNotAllowUnrelatedIncompatibilities() {
         // Making a public field final is not an extension-only break, so
         // @NonExtendable cannot downgrade or suppress it.
         fixtureComparison("Field/PublicFieldMadeFinal", "A")
@@ -305,14 +305,14 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     }
 
     @Test
-    public void testOuterNonExtendableAnnotationDoesNotApplyToNestedClass() {
+    public void outerNonExtendableAnnotationDoesNotApplyToNestedClass() {
         // A nested class is a separate API element, so an outer @NonExtendable marker
         // cannot downgrade or suppress the nested class's subclassing break.
         assertClassIncompatible(compareNestedClassMadeFinalWithNonExtendableOuter(), "Outer$Nested", IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
-    public void testInternalApiStatusCanRemainErrorUsingSeparateCheckMode() {
+    public void internalApiStatusCanRemainErrorUsingSeparateCheckMode() {
         // ERROR mode keeps @Internal elements in strict API checks, so deleting the
         // class reports a compatibility error.
         fixtureComparison("Class/InternalClassDeleted", "A")
