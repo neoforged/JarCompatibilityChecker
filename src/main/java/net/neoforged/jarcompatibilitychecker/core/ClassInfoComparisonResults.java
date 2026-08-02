@@ -60,7 +60,11 @@ public class ClassInfoComparisonResults {
     }
 
     <I extends MemberInfo> void addAnnotationIncompatibility(AnnotationCheckMode mode, I memberInfo, AnnotationInfo annotationInfo, String message, boolean isError) {
-        addIncompatibility(new AnnotationIncompatibility<>(memberInfo, annotationInfo, message, isError && mode.shouldError()));
+        addAnnotationIncompatibility(memberInfo, annotationInfo, message, isError && mode.shouldError());
+    }
+
+    <I extends MemberInfo> void addAnnotationIncompatibility(I memberInfo, AnnotationInfo annotationInfo, String message, boolean isError) {
+        addIncompatibility(new AnnotationIncompatibility<>(memberInfo, annotationInfo, message, isError));
     }
 
     /**

@@ -58,6 +58,7 @@ public class ClassInfoComparer {
         ClassInfo packageInfo = baseCache.getMainClassInfo(packageInfoName);
         boolean classInternal = isInternalApi(baseClassInfo, internalAnnotations, internalAnnotationCheckMode, packageInfo);
         NonExtendableApiCompatibility nonExtendableApiCompatibility = new NonExtendableApiCompatibility(checkBinary, nonExtendableApiCheckMode, nonExtendableApiAnnotations);
+        List<String> apiStatusAnnotations = checkBinary ? ImmutableList.of() : ApiStatusCompatibility.mergeAnnotationDescriptors(internalAnnotations, nonExtendableApiAnnotations);
 
         if (classInternal && internalAnnotationCheckMode == InternalAnnotationCheckMode.SKIP)
             return results;
@@ -92,7 +93,8 @@ public class ClassInfoComparer {
             }
         }
 
-        checkAnnotations(annotationCheckMode, results, baseClassInfo, isClassError, baseClassInfo.annotations, concreteClassInfo.annotations);
+        ApiStatusCompatibility.checkApiStatusAnnotationChanges(results, baseClassInfo, isClassError, apiStatusAnnotations, baseClassInfo.annotations, concreteClassInfo.annotations);
+        checkAnnotations(annotationCheckMode, results, baseClassInfo, isClassError, baseClassInfo.annotations, concreteClassInfo.annotations, apiStatusAnnotations);
 
         if (baseClassInfo.superName != null) {
             ClassInfo superClassInfo = baseCache.getClassInfo(baseClassInfo.superName);
@@ -168,7 +170,8 @@ public class ClassInfoComparer {
                 }
             }
 
-            checkAnnotations(annotationCheckMode, results, baseInfo, isMethodError, baseInfo.annotations, inputInfo.annotations);
+            ApiStatusCompatibility.checkApiStatusAnnotationChanges(results, baseInfo, isMethodError, apiStatusAnnotations, baseInfo.annotations, inputInfo.annotations);
+            checkAnnotations(annotationCheckMode, results, baseInfo, isMethodError, baseInfo.annotations, inputInfo.annotations, apiStatusAnnotations);
         }
 
         for (MethodInfo concreteInfo : concreteClassInfo.getMethods().values()) {
@@ -212,7 +215,8 @@ public class ClassInfoComparer {
                 results.addFieldIncompatibility(baseInfo, IncompatibilityMessages.FIELD_MADE_FINAL, isFieldError);
             }
 
-            checkAnnotations(annotationCheckMode, results, baseInfo, isFieldError, baseInfo.annotations, inputInfo.annotations);
+            ApiStatusCompatibility.checkApiStatusAnnotationChanges(results, baseInfo, isFieldError, apiStatusAnnotations, baseInfo.annotations, inputInfo.annotations);
+            checkAnnotations(annotationCheckMode, results, baseInfo, isFieldError, baseInfo.annotations, inputInfo.annotations, apiStatusAnnotations);
         }
 
         return results;
@@ -299,6 +303,11 @@ public class ClassInfoComparer {
 
     public static <I extends MemberInfo> void checkAnnotations(@Nullable AnnotationCheckMode mode, ClassInfoComparisonResults results, I memberInfo, boolean isError,
             List<AnnotationInfo> baseAnnotations, List<AnnotationInfo> concreteAnnotations) {
+        checkAnnotations(mode, results, memberInfo, isError, baseAnnotations, concreteAnnotations, ImmutableList.of());
+    }
+
+    private static <I extends MemberInfo> void checkAnnotations(@Nullable AnnotationCheckMode mode, ClassInfoComparisonResults results, I memberInfo, boolean isError,
+            List<AnnotationInfo> baseAnnotations, List<AnnotationInfo> concreteAnnotations, List<String> ignoredAnnotations) {
         if (mode == null || (baseAnnotations.isEmpty() && concreteAnnotations.isEmpty()))
             return;
 
@@ -334,6 +343,9 @@ public class ClassInfoComparer {
             List<AnnotationInfo> baseCopy = new ArrayList<>(baseAnnotations);
 
             for (AnnotationInfo concreteAnnotation : concreteAnnotations) {
+                if (ignoredAnnotations.contains(concreteAnnotation.desc))
+                    continue;
+
                 AnnotationInfo match = null;
                 for (Iterator<AnnotationInfo> iterator = baseCopy.iterator(); iterator.hasNext(); ) {
                     AnnotationInfo baseAnnotation = iterator.next();

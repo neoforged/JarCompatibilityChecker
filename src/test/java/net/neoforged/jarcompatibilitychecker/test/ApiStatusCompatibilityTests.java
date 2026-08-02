@@ -21,174 +21,298 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.MethodNode;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
+    private static final String INTERNAL = InternalAnnotationCheckMode.DEFAULT_INTERNAL_ANNOTATIONS.get(0);
     private static final String NON_EXTENDABLE = NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS.get(0);
     private static final String CUSTOM_NON_EXTENDABLE = "Lcom/example/NonExtendable;";
+    private static final String METHOD_NAME = "thing";
+    private static final String METHOD_DESC = "()V";
 
     // Cases that ApiStatus compatibility can downgrade or suppress
 
     @Test
     public void testNonExtendableApiClassMadeFinalWarnsByDefault() {
-        // Making a non-extendable public class final is reported as a warning by default
+        // Making a public class final breaks external subclasses, but @NonExtendable
+        // marks subclassing as not supported, so the break is downgraded to a warning.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
-                .withBaseClassAnnotation(NON_EXTENDABLE)
+                .withClassAnnotation(NON_EXTENDABLE)
                 .assertClassWarning(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
     public void testNonExtendableApiMethodMadeAbstractWarnsByDefault() {
-        // Making a method abstract on a non-extendable type is reported as a warning by default
+        // Making a method abstract breaks subclasses that rely on the implementation,
+        // but @NonExtendable marks subclassing as not supported, so the break is
+        // downgraded to a warning.
         fixtureComparison("Method/PublicMethodMadeAbstract", "A")
                 .api()
-                .withBaseClassAnnotation(NON_EXTENDABLE)
-                .assertMemberWarning("thing", "()V", IncompatibilityMessages.METHOD_MADE_ABSTRACT);
+                .withClassAnnotation(NON_EXTENDABLE)
+                .assertMemberWarning(METHOD_NAME, METHOD_DESC, IncompatibilityMessages.METHOD_MADE_ABSTRACT);
     }
 
     @Test
     public void testNonExtendableApiMethodMadeFinalWarnsByDefault() {
-        // Making a method final on a non-extendable type is reported as a warning by default
+        // Making a method final breaks overrides, but @NonExtendable marks subclassing
+        // as not supported, so the break is downgraded to a warning.
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
                 .api()
-                .withBaseClassAnnotation(NON_EXTENDABLE)
-                .assertMemberWarning("thing", "()V", IncompatibilityMessages.METHOD_MADE_FINAL);
+                .withClassAnnotation(NON_EXTENDABLE)
+                .assertMemberWarning(METHOD_NAME, METHOD_DESC, IncompatibilityMessages.METHOD_MADE_FINAL);
     }
 
     @Test
     public void testNonExtendableMethodAnnotationAllowsMethodMadeFinal() {
-        // A method can be marked non-extendable directly
+        // Making a method final breaks overrides, but method-level @NonExtendable
+        // marks overriding as not supported, so the break is downgraded to a warning.
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
                 .api()
-                .withBaseMethodAnnotation("thing", "()V", NON_EXTENDABLE)
-                .assertMemberWarning("thing", "()V", IncompatibilityMessages.METHOD_MADE_FINAL);
+                .withMethodAnnotation(METHOD_NAME, METHOD_DESC, NON_EXTENDABLE)
+                .assertMemberWarning(METHOD_NAME, METHOD_DESC, IncompatibilityMessages.METHOD_MADE_FINAL);
     }
 
     @Test
     public void testNonExtendableApiCheckModeSkipSuppressesAllowedIncompatibility() {
-        // SKIP suppresses otherwise-allowed non-extendable API incompatibilities, matching internal API mode behavior
+        // SKIP mode suppresses extension-only breaks when the API marks extension as
+        // not supported, so the result remains compatible.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.SKIP)
-                .withBaseClassAnnotation(NON_EXTENDABLE)
+                .withClassAnnotation(NON_EXTENDABLE)
                 .assertCompatible();
     }
 
     @Test
     public void testCustomNonExtendableAnnotationWarnsWhenConfigured() {
-        // Custom non-extendable annotations apply when configured
+        // Configured custom markers use the same contract as @NonExtendable, so
+        // extension-only breaks are downgraded to warnings.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
                 .withNonExtendableApiAnnotations(ImmutableList.of(CUSTOM_NON_EXTENDABLE))
-                .withBaseClassAnnotation(CUSTOM_NON_EXTENDABLE)
+                .withClassAnnotation(CUSTOM_NON_EXTENDABLE)
                 .assertClassWarning(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
     public void testNonExtendableAnnotationBinaryNameIsNormalized() {
-        // Configured annotations may use Java binary names instead of JVM descriptors
+        // Binary-name configuration resolves to the same marker descriptor, so the
+        // same @NonExtendable compatibility policy applies.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
                 .withNonExtendableApiAnnotations(ImmutableList.of("org.jetbrains.annotations.ApiStatus$NonExtendable"))
-                .withBaseClassAnnotation(NON_EXTENDABLE)
+                .withClassAnnotation(NON_EXTENDABLE)
                 .assertClassWarning(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
     public void testInternalApiStatusCanWarnUsingSeparateCheckMode() {
-        // Internal API remains controlled by the internal annotation mode, separately from non-extendable API compatibility
+        // Deleting a visible class breaks callers, but @Internal marks the class as
+        // not part of the supported API, so WARN mode downgrades the break to a warning.
         fixtureComparison("Class/InternalClassDeleted", "A")
                 .api()
                 .withInternalAnnotationMode(InternalAnnotationCheckMode.WARN)
                 .assertClassWarning(IncompatibilityMessages.API_CLASS_MISSING);
     }
 
+    // ApiStatus marker annotations are compatibility-affecting API contract changes
+
+    @Test
+    public void testInternalAnnotationAddedToClassIsReportedAsError() {
+        // Adding @Internal removes the class from the supported API contract, so the
+        // annotation change is reported as an error.
+        assertClassIncompatible(
+                compareApiStatusAnnotationChange(publicClass("A"), publicClass("A", INTERNAL)),
+                "A",
+                IncompatibilityMessages.ANNOTATION_ADDED
+        );
+    }
+
+    @Test
+    public void testInternalAnnotationRemovedFromClassIsReportedAsError() {
+        // Removing @Internal adds the class to the supported API contract, so the
+        // annotation change is reported as an error.
+        assertClassIncompatible(
+                compareApiStatusAnnotationChange(publicClass("A", INTERNAL), publicClass("A")),
+                "A",
+                IncompatibilityMessages.ANNOTATION_REMOVED
+        );
+    }
+
+    @Test
+    public void testInternalAnnotationAddedToMethodIsReportedAsError() {
+        // Adding @Internal removes the method from the supported API contract, so the
+        // annotation change is reported as an error.
+        assertIncompatible(
+                compareApiStatusAnnotationChange(publicClassWithPublicMethod("A"), publicClassWithAnnotatedPublicMethod("A", INTERNAL)),
+                "A",
+                METHOD_NAME,
+                METHOD_DESC,
+                true,
+                IncompatibilityMessages.ANNOTATION_ADDED
+        );
+    }
+
+    @Test
+    public void testInternalAnnotationRemovedFromMethodIsReportedAsError() {
+        // Removing @Internal adds the method to the supported API contract, so the
+        // annotation change is reported as an error.
+        assertIncompatible(
+                compareApiStatusAnnotationChange(publicClassWithAnnotatedPublicMethod("A", INTERNAL), publicClassWithPublicMethod("A")),
+                "A",
+                METHOD_NAME,
+                METHOD_DESC,
+                true,
+                IncompatibilityMessages.ANNOTATION_REMOVED
+        );
+    }
+
+    @Test
+    public void testNonExtendableAnnotationAddedToClassIsReportedAsError() {
+        // Adding @NonExtendable removes supported subclassing from the class contract,
+        // so the annotation change is reported as an error.
+        assertClassIncompatible(
+                compareApiStatusAnnotationChange(publicClass("A"), publicClass("A", NON_EXTENDABLE)),
+                "A",
+                IncompatibilityMessages.ANNOTATION_ADDED
+        );
+    }
+
+    @Test
+    public void testNonExtendableAnnotationRemovedFromClassIsReportedAsError() {
+        // Removing @NonExtendable adds supported subclassing to the class contract, so
+        // the annotation change is reported as an error.
+        assertClassIncompatible(
+                compareApiStatusAnnotationChange(publicClass("A", NON_EXTENDABLE), publicClass("A")),
+                "A",
+                IncompatibilityMessages.ANNOTATION_REMOVED
+        );
+    }
+
+    @Test
+    public void testNonExtendableAnnotationAddedToMethodIsReportedAsError() {
+        // Adding @NonExtendable removes supported overriding from the method contract,
+        // so the annotation change is reported as an error.
+        assertIncompatible(
+                compareApiStatusAnnotationChange(publicClassWithPublicMethod("A"), publicClassWithAnnotatedPublicMethod("A", NON_EXTENDABLE)),
+                "A",
+                METHOD_NAME,
+                METHOD_DESC,
+                true,
+                IncompatibilityMessages.ANNOTATION_ADDED
+        );
+    }
+
+    @Test
+    public void testNonExtendableAnnotationRemovedFromMethodIsReportedAsError() {
+        // Removing @NonExtendable adds supported overriding to the method contract, so
+        // the annotation change is reported as an error.
+        assertIncompatible(
+                compareApiStatusAnnotationChange(publicClassWithAnnotatedPublicMethod("A", NON_EXTENDABLE), publicClassWithPublicMethod("A")),
+                "A",
+                METHOD_NAME,
+                METHOD_DESC,
+                true,
+                IncompatibilityMessages.ANNOTATION_REMOVED
+        );
+    }
+
     // Cases that can be kept strict with ERROR mode
 
     @Test
     public void testNonExtendableApiClassMadeFinalInErrorModeRemainsError() {
-        // ERROR mode preserves strict compatibility checks
+        // ERROR mode keeps extension-only breaks as errors, so finalizing the class
+        // reports a subclassing compatibility break.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.ERROR)
-                .withBaseClassAnnotation(NON_EXTENDABLE)
+                .withClassAnnotation(NON_EXTENDABLE)
                 .assertClassError(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
     public void testNonExtendableApiMethodMadeAbstractInErrorModeRemainsError() {
-        // ERROR mode preserves strict compatibility checks
+        // ERROR mode keeps extension-only breaks as errors, so making the method
+        // abstract reports a subclassing compatibility break.
         fixtureComparison("Method/PublicMethodMadeAbstract", "A")
                 .api()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.ERROR)
-                .withBaseClassAnnotation(NON_EXTENDABLE)
-                .assertMemberError("thing", "()V", IncompatibilityMessages.METHOD_MADE_ABSTRACT);
+                .withClassAnnotation(NON_EXTENDABLE)
+                .assertMemberError(METHOD_NAME, METHOD_DESC, IncompatibilityMessages.METHOD_MADE_ABSTRACT);
     }
 
     @Test
     public void testNonExtendableApiMethodMadeFinalInErrorModeRemainsError() {
-        // ERROR mode preserves strict compatibility checks
+        // ERROR mode keeps extension-only breaks as errors, so making the method final
+        // reports an overriding compatibility break.
         fixtureComparison("Method/PublicMethodMadeFinal", "A")
                 .api()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.ERROR)
-                .withBaseClassAnnotation(NON_EXTENDABLE)
-                .assertMemberError("thing", "()V", IncompatibilityMessages.METHOD_MADE_FINAL);
+                .withClassAnnotation(NON_EXTENDABLE)
+                .assertMemberError(METHOD_NAME, METHOD_DESC, IncompatibilityMessages.METHOD_MADE_FINAL);
     }
 
     // Cases that should still report errors even with the most permissive non-extendable mode
 
     @Test
     public void testCustomNonExtendableAnnotationRequiresConfiguration() {
-        // Custom non-extendable annotations only apply when configured
+        // Unconfigured custom markers have no compatibility policy, so finalizing the
+        // class reports a subclassing compatibility break.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .api()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.SKIP)
-                .withBaseClassAnnotation(CUSTOM_NON_EXTENDABLE)
+                .withClassAnnotation(CUSTOM_NON_EXTENDABLE)
                 .assertClassError(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
     public void testNonExtendableBinaryClassMadeFinalRemainsError() {
-        // Non-extendable API compatibility does not relax binary compatibility
+        // Binary mode checks JVM compatibility, so API policy markers cannot downgrade
+        // final-class breaks to warnings.
         fixtureComparison("Class/PublicClassMadeFinal", "A")
                 .binary()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.SKIP)
-                .withBaseClassAnnotation(NON_EXTENDABLE)
+                .withClassAnnotation(NON_EXTENDABLE)
                 .assertClassError(IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
     public void testNonExtendableBinaryMethodMadeAbstractRemainsError() {
-        // Non-extendable API compatibility does not relax binary compatibility
+        // Binary mode checks JVM compatibility, so API policy markers cannot downgrade
+        // abstract-method breaks to warnings.
         fixtureComparison("Method/PublicMethodMadeAbstract", "A")
                 .binary()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.SKIP)
-                .withBaseClassAnnotation(NON_EXTENDABLE)
-                .assertMemberError("thing", "()V", IncompatibilityMessages.METHOD_MADE_ABSTRACT);
+                .withClassAnnotation(NON_EXTENDABLE)
+                .assertMemberError(METHOD_NAME, METHOD_DESC, IncompatibilityMessages.METHOD_MADE_ABSTRACT);
     }
 
     @Test
     public void testNonExtendableDoesNotAllowUnrelatedIncompatibilities() {
-        // Non-extendable API compatibility only applies to extension-only incompatibilities
+        // Making a public field final is not an extension-only break, so
+        // @NonExtendable cannot downgrade or suppress it.
         fixtureComparison("Field/PublicFieldMadeFinal", "A")
                 .api()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.SKIP)
-                .withBaseClassAnnotation(NON_EXTENDABLE)
+                .withClassAnnotation(NON_EXTENDABLE)
                 .assertMemberError("buzz", "Z", IncompatibilityMessages.FIELD_MADE_FINAL);
     }
 
     @Test
     public void testOuterNonExtendableAnnotationDoesNotApplyToNestedClass() {
-        // Marking an outer class non-extendable does not mark its nested class non-extendable
+        // A nested class is a separate API element, so an outer @NonExtendable marker
+        // cannot downgrade or suppress the nested class's subclassing break.
         assertClassIncompatible(compareNestedClassMadeFinalWithNonExtendableOuter(), "Outer$Nested", IncompatibilityMessages.CLASS_MADE_FINAL);
     }
 
     @Test
     public void testInternalApiStatusCanRemainErrorUsingSeparateCheckMode() {
-        // Internal API remains controlled by the internal annotation mode, separately from non-extendable API compatibility
+        // ERROR mode keeps @Internal elements in strict API checks, so deleting the
+        // class reports a compatibility error.
         fixtureComparison("Class/InternalClassDeleted", "A")
                 .api()
                 .withNonExtendableApiMode(NonExtendableApiCheckMode.SKIP)
@@ -196,8 +320,8 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
                 .assertClassError(IncompatibilityMessages.API_CLASS_MISSING);
     }
 
-    private FixtureComparisonBuilder fixtureComparison(String folderName, String className) {
-        return new FixtureComparisonBuilder(folderName, className);
+    private FixtureComparisonModeBuilder fixtureComparison(String folderName, String className) {
+        return new FixtureComparisonModeBuilder(folderName, className);
     }
 
     private ClassInfoComparisonResults compareNestedClassMadeFinalWithNonExtendableOuter() {
@@ -225,28 +349,56 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
         );
     }
 
-    private final class FixtureComparisonBuilder {
+    private ClassInfoComparisonResults compareApiStatusAnnotationChange(ClassInfo baseClass, ClassInfo inputClass) {
+        ClassInfoCache baseCache = ClassInfoCache.fromMaps(ImmutableMap.of(baseClass.getName(), baseClass), ImmutableMap.of());
+        ClassInfoCache inputCache = ClassInfoCache.fromMaps(ImmutableMap.of(inputClass.getName(), inputClass), ImmutableMap.of());
+
+        return ClassInfoComparer.compare(
+                false,
+                null,
+                InternalAnnotationCheckMode.DEFAULT_INTERNAL_ANNOTATIONS,
+                InternalAnnotationCheckMode.ERROR,
+                NonExtendableApiCheckMode.DEFAULT_MODE,
+                NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS,
+                baseCache,
+                baseClass,
+                inputCache,
+                inputClass
+        );
+    }
+
+    private final class FixtureComparisonModeBuilder {
         private final String folderName;
         private final String className;
-        private Boolean checkBinary;
-        private InternalAnnotationCheckMode internalAnnotationCheckMode = InternalAnnotationCheckMode.ERROR;
-        private NonExtendableApiCheckMode nonExtendableApiCheckMode = NonExtendableApiCheckMode.DEFAULT_MODE;
-        private List<String> nonExtendableApiAnnotations = NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS;
-        private Consumer<ClassInfo> baseClassConfigurer = classInfo -> {};
 
-        private FixtureComparisonBuilder(String folderName, String className) {
+        private FixtureComparisonModeBuilder(String folderName, String className) {
             this.folderName = folderName;
             this.className = className;
         }
 
         private FixtureComparisonBuilder api() {
-            this.checkBinary = false;
-            return this;
+            return new FixtureComparisonBuilder(this.folderName, this.className, false);
         }
 
         private FixtureComparisonBuilder binary() {
-            this.checkBinary = true;
-            return this;
+            return new FixtureComparisonBuilder(this.folderName, this.className, true);
+        }
+    }
+
+    private final class FixtureComparisonBuilder {
+        private final String folderName;
+        private final String className;
+        private final boolean checkBinary;
+        private InternalAnnotationCheckMode internalAnnotationCheckMode = InternalAnnotationCheckMode.ERROR;
+        private NonExtendableApiCheckMode nonExtendableApiCheckMode = NonExtendableApiCheckMode.DEFAULT_MODE;
+        private List<String> nonExtendableApiAnnotations = NonExtendableApiCheckMode.DEFAULT_NON_EXTENDABLE_API_ANNOTATIONS;
+        private Consumer<ClassInfo> baseClassConfigurer = classInfo -> {};
+        private Consumer<ClassInfo> inputClassConfigurer = classInfo -> {};
+
+        private FixtureComparisonBuilder(String folderName, String className, boolean checkBinary) {
+            this.folderName = folderName;
+            this.className = className;
+            this.checkBinary = checkBinary;
         }
 
         private FixtureComparisonBuilder withInternalAnnotationMode(InternalAnnotationCheckMode internalAnnotationCheckMode) {
@@ -264,8 +416,20 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
             return this;
         }
 
+        private FixtureComparisonBuilder withClassAnnotation(String annotation) {
+            return withBaseClassAnnotation(annotation).withInputClassAnnotation(annotation);
+        }
+
         private FixtureComparisonBuilder withBaseClassAnnotation(String annotation) {
             return withBaseClass(classInfo -> annotate(classInfo, annotation));
+        }
+
+        private FixtureComparisonBuilder withInputClassAnnotation(String annotation) {
+            return withInputClass(classInfo -> annotate(classInfo, annotation));
+        }
+
+        private FixtureComparisonBuilder withMethodAnnotation(String name, String desc, String annotation) {
+            return withBaseMethodAnnotation(name, desc, annotation).withInputMethodAnnotation(name, desc, annotation);
         }
 
         private FixtureComparisonBuilder withBaseMethodAnnotation(String name, String desc, String annotation) {
@@ -276,9 +440,26 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
             });
         }
 
+        private FixtureComparisonBuilder withInputMethodAnnotation(String name, String desc, String annotation) {
+            return withInputClass(classInfo -> {
+                MethodInfo methodInfo = classInfo.getMethod(name, desc);
+                Assert.assertNotNull("Method " + name + desc + " not found", methodInfo);
+                annotate(methodInfo, annotation);
+            });
+        }
+
         private FixtureComparisonBuilder withBaseClass(Consumer<ClassInfo> configurer) {
             Consumer<ClassInfo> previousConfigurer = this.baseClassConfigurer;
             this.baseClassConfigurer = classInfo -> {
+                previousConfigurer.accept(classInfo);
+                configurer.accept(classInfo);
+            };
+            return this;
+        }
+
+        private FixtureComparisonBuilder withInputClass(Consumer<ClassInfo> configurer) {
+            Consumer<ClassInfo> previousConfigurer = this.inputClassConfigurer;
+            this.inputClassConfigurer = classInfo -> {
                 previousConfigurer.accept(classInfo);
                 configurer.accept(classInfo);
             };
@@ -306,9 +487,11 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
         }
 
         private ClassInfoComparisonResults results() {
-            Assert.assertNotNull("Compatibility mode must be configured with api() or binary()", this.checkBinary);
             return getComparisonResults(this.folderName, this.className, (baseCache, baseClassInfo, inputCache, inputClassInfo) -> {
                 this.baseClassConfigurer.accept(baseClassInfo);
+                if (inputClassInfo != null) {
+                    this.inputClassConfigurer.accept(inputClassInfo);
+                }
                 return ClassInfoComparer.compare(
                         this.checkBinary,
                         null,
@@ -335,6 +518,24 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
 
     private static ClassInfo publicFinalClass(String name, String... annotations) {
         return classInfo(name, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER | Opcodes.ACC_FINAL, annotations);
+    }
+
+    private static ClassInfo publicClassWithAnnotatedPublicMethod(String name, String annotation) {
+        ClassInfo classInfo = publicClassWithPublicMethod(name);
+        MethodInfo methodInfo = classInfo.getMethod(METHOD_NAME, METHOD_DESC);
+        Assert.assertNotNull("Method " + METHOD_NAME + METHOD_DESC + " not found", methodInfo);
+        annotate(methodInfo, annotation);
+        return classInfo;
+    }
+
+    private static ClassInfo publicClassWithPublicMethod(String name) {
+        ClassNode node = new ClassNode();
+        node.version = Opcodes.V1_8;
+        node.access = Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER;
+        node.name = name;
+        node.superName = "java/lang/Object";
+        node.methods.add(new MethodNode(Opcodes.ACC_PUBLIC, METHOD_NAME, METHOD_DESC, null, null));
+        return new ClassInfo(node);
     }
 
     private static ClassInfo classInfo(String name, int access, String... annotations) {

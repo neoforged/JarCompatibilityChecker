@@ -6,10 +6,13 @@
 package net.neoforged.jarcompatibilitychecker.core;
 
 import com.google.common.collect.ImmutableList;
+import net.neoforged.jarcompatibilitychecker.data.AnnotationInfo;
 import net.neoforged.jarcompatibilitychecker.data.MemberInfo;
 import net.neoforged.jarcompatibilitychecker.data.MethodInfo;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 final class ApiStatusCompatibility {
     static final String NON_EXTENDABLE = "Lorg/jetbrains/annotations/ApiStatus$NonExtendable;";
@@ -49,6 +52,38 @@ final class ApiStatusCompatibility {
             builder.add(normalizeAnnotationDescriptor(annotation));
         }
         return builder.build();
+    }
+
+    static List<String> mergeAnnotationDescriptors(List<String> firstAnnotations, List<String> secondAnnotations) {
+        Set<String> annotations = new LinkedHashSet<>();
+        annotations.addAll(firstAnnotations);
+        annotations.addAll(secondAnnotations);
+        return ImmutableList.copyOf(annotations);
+    }
+
+    static <I extends MemberInfo> void checkApiStatusAnnotationChanges(ClassInfoComparisonResults results, I memberInfo, boolean isError,
+            List<String> apiStatusAnnotations, List<AnnotationInfo> baseAnnotations, List<AnnotationInfo> concreteAnnotations) {
+        if (apiStatusAnnotations.isEmpty() || (baseAnnotations.isEmpty() && concreteAnnotations.isEmpty()))
+            return;
+
+        for (String apiStatusAnnotation : apiStatusAnnotations) {
+            AnnotationInfo baseAnnotation = findAnnotation(baseAnnotations, apiStatusAnnotation);
+            AnnotationInfo concreteAnnotation = findAnnotation(concreteAnnotations, apiStatusAnnotation);
+            if (baseAnnotation == null && concreteAnnotation != null) {
+                results.addAnnotationIncompatibility(memberInfo, concreteAnnotation, IncompatibilityMessages.ANNOTATION_ADDED, isError);
+            } else if (baseAnnotation != null && concreteAnnotation == null) {
+                results.addAnnotationIncompatibility(memberInfo, baseAnnotation, IncompatibilityMessages.ANNOTATION_REMOVED, isError);
+            }
+        }
+    }
+
+    private static AnnotationInfo findAnnotation(List<AnnotationInfo> annotations, String desc) {
+        for (AnnotationInfo annotation : annotations) {
+            if (desc.equals(annotation.desc))
+                return annotation;
+        }
+
+        return null;
     }
 
     private static String normalizeAnnotationDescriptor(String annotation) {
