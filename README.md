@@ -8,18 +8,9 @@ Compatibility modes:
 - **Binary** - Checks for binary compatibility between all members, both public and private, of the base JAR and concrete JAR
 
 Additional API policy flags:
-- `--non-extendable-api-check-mode SKIP|WARN|ERROR` - Controls extension-only incompatibilities on base API elements marked with configured non-extendable annotations.
-  The default is `WARN`, recording applicable incompatibilities as warnings instead of errors.
-  `ERROR` preserves strict compatibility checks.
-  `SKIP` suppresses applicable incompatibilities.
-- `--non-extendable-api-annotation <annotation>` - Configures the marker annotations for non-extendable API.
-  This option may be repeated and defaults to `org.jetbrains.annotations.ApiStatus$NonExtendable` (`Lorg/jetbrains/annotations/ApiStatus$NonExtendable;`).
-  Annotation names may be passed as Java binary class names or JVM descriptors.
-  This lets public, non-extensible APIs evolve without failing compatibility checks for changes that only affect unsupported external implementations or overrides:
-  - making a non-extendable class final;
-  - making a method abstract on a non-extendable type;
-  - making a method final on a non-extendable type, or on a method directly marked `@ApiStatus.NonExtendable`.
-  This flag does not relax binary compatibility checks.
+- `--non-extendable-api-check-mode SKIP|WARN|ERROR` and `--non-extendable-api-annotation <annotation>` - Controls extension-only compatibility checks for non-extendable API.
+  By default, `org.jetbrains.annotations.ApiStatus$NonExtendable` is treated as a non-extendable API marker and extension-only incompatibilities are warnings.
+  Non-extendable API means "public to use, unsupported to implement or subclass." This does not relax binary compatibility checks.
 - `--internal-annotation-check-mode WARN|SKIP|ERROR` and `--internal-annotation <annotation>` - Controls the separate internal API policy.
   By default, `org.jetbrains.annotations.ApiStatus$Internal` is treated as an internal API marker and internal incompatibilities are warnings.
   This is separate from `@ApiStatus.NonExtendable`: internal API means "not public API", while non-extendable API means "public to use, unsupported to implement or subclass."
