@@ -3,6 +3,10 @@
 The JAR with the API or base code to be compared against is called the **base JAR**.
 The input JAR to compare against the API or base for incompatibilities is called the **concrete JAR**.
 
+## Java Compatibility
+
+JarCompatibilityChecker requires Java 8 or newer and can compare JARs containing class files compiled for Java 27 or earlier.
+
 Compatibility modes:
 - **API** - Checks for compatibility between the public and protected members (API) of the base JAR and concrete JAR
 - **Binary** - Checks for binary compatibility between all members, both public and private, of the base JAR and concrete JAR
