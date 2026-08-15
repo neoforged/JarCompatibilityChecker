@@ -34,6 +34,19 @@ import java.util.Map;
 
 public class ConsoleTool {
     public static void main(String[] args) {
+        int exitCode = run(args);
+        if (exitCode != 0) {
+            System.exit(exitCode);
+        }
+    }
+
+    /**
+     * Runs the console tool without terminating the calling JVM.
+     *
+     * @param args the command-line arguments
+     * @return the exit code that would be used by the command-line entrypoint
+     */
+    public static int run(String[] args) {
         try {
             OptionParser parser = new OptionParser();
             OptionSpec<Void> apiO = parser.accepts("api", "Enables the API compatibility checking mode");
@@ -69,8 +82,7 @@ public class ConsoleTool {
                 System.err.println("Error: " + ex.getMessage());
                 System.err.println();
                 parser.printHelpOn(System.err);
-                System.exit(-1);
-                return;
+                return -1;
             }
 
             File baseJar = options.valueOf(baseJarO);
@@ -103,11 +115,12 @@ public class ConsoleTool {
 
             if (options.has(failO)) {
                 // Clamp to a max of 125 to prevent conflicting with special meaning exit codes - https://tldp.org/LDP/abs/html/exitcodes.html
-                System.exit(Math.min(125, incompatibilities.getKey()));
+                return Math.min(125, incompatibilities.getKey());
             }
+            return 0;
         } catch (Exception e) {
             e.printStackTrace();
-            System.exit(-1);
+            return -1;
         }
     }
 }

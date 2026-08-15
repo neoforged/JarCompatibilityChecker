@@ -6,6 +6,7 @@ import groovy.transform.CompileStatic
 import net.neoforged.jarcompatibilitychecker.ConsoleTool
 import net.neoforged.jarcompatibilitychecker.core.NonExtendableApiCheckMode
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
@@ -137,7 +138,7 @@ abstract class CompatibilityTask extends DefaultTask {
             inputs.add('--fail')
         }
 
-        ConsoleTool.main(inputs as String[])
+        final int exitCode = ConsoleTool.run(inputs as String[])
 
         if (output.isPresent() && globalOutput.isPresent()) {
             final output = this.output.get().asFile
@@ -148,6 +149,15 @@ abstract class CompatibilityTask extends DefaultTask {
                 global.put(projectName.get(), projectIncompats)
                 globalOutput.write(new JsonBuilder(global).toString())
             }
+        }
+
+        if (exitCode != 0) {
+            if (exitCode > 0) {
+                final count = exitCode == 125 ? 'at least 125' : exitCode.toString()
+                final report = output.isPresent() ? " See the report at ${output.get().asFile}." : ''
+                throw new GradleException("Jar compatibility check found ${count} error-level incompatibilit${exitCode == 1 ? 'y' : 'ies'}.${report}")
+            }
+            throw new GradleException("Jar compatibility check could not be completed (exit code ${exitCode}).")
         }
     }
 
