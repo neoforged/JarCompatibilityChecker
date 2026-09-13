@@ -11,7 +11,7 @@ import net.neoforged.jarcompatibilitychecker.core.ClassInfoComparer;
 import net.neoforged.jarcompatibilitychecker.core.ClassInfoComparisonResults;
 import net.neoforged.jarcompatibilitychecker.core.IncompatibilityMessages;
 import net.neoforged.jarcompatibilitychecker.data.ClassInfo;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
