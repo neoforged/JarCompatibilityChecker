@@ -6,7 +6,7 @@
 package net.neoforged.jarcompatibilitychecker.test;
 
 import net.neoforged.jarcompatibilitychecker.core.IncompatibilityMessages;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 
