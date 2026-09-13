@@ -385,6 +385,10 @@ public class ClassInfoComparer {
         if (methodInfo != null && (methodInfo.access & Opcodes.ACC_STATIC) == (isStatic ? Opcodes.ACC_STATIC : 0))
             return methodInfo;
 
+        // Constructors and class initializers are not inherited, so don't check the parent class.
+        if ("<init>".equals(methodName) || "<clinit>".equals(methodName))
+            return null;
+
         for (ClassInfo parent : parents) {
             methodInfo = parent.getMethod(methodName, methodDesc);
             // Don't return a private method info from a parent class and only return this parent method info if the staticness matches
