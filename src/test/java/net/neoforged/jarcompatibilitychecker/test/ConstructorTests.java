@@ -11,40 +11,29 @@ import net.neoforged.jarcompatibilitychecker.core.ClassInfoComparer;
 import net.neoforged.jarcompatibilitychecker.core.ClassInfoComparisonResults;
 import net.neoforged.jarcompatibilitychecker.core.IncompatibilityMessages;
 import net.neoforged.jarcompatibilitychecker.data.ClassInfo;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
 
-@RunWith(Parameterized.class)
 public class ConstructorTests extends BaseCompatibilityTest {
-    @Parameterized.Parameters(name = "checkBinary={0}")
-    public static Object[][] parameters() {
-        return new Object[][] {{false}, {true}};
-    }
-
-    private final boolean checkBinary;
-
-    public ConstructorTests(boolean checkBinary) {
-        this.checkBinary = checkBinary;
-    }
-
-    @Test
-    public void testRemovedConstructorIsNotInherited() {
+    @ParameterizedTest(name = "checkBinary={0}")
+    @ValueSource(booleans = {false, true})
+    public void testRemovedConstructorIsNotInherited(boolean checkBinary) {
         ClassInfo baseClass = createClassWithConstructor("A", "()V");
         ClassInfo inputClass = createClassWithConstructor("A", "(I)V");
 
         ClassInfoCache baseCache = ClassInfoCache.fromMaps(ImmutableMap.of("A", baseClass), ImmutableMap.of());
         ClassInfoCache inputCache = ClassInfoCache.fromMaps(ImmutableMap.of("A", inputClass), ImmutableMap.of());
-        ClassInfoComparisonResults results = ClassInfoComparer.compare(this.checkBinary, baseCache, baseClass, inputCache, inputClass);
+        ClassInfoComparisonResults results = ClassInfoComparer.compare(checkBinary, baseCache, baseClass, inputCache, inputClass);
 
-        assertIncompatible(results, "A", "<init>", "()V", true, getExpectedMessage());
+        assertIncompatible(results, "A", "<init>", "()V", true, getExpectedMessage(checkBinary));
     }
 
-    @Test
-    public void testRemovedConstructorIsNotInheritedFromCustomParent() {
+    @ParameterizedTest(name = "checkBinary={0}")
+    @ValueSource(booleans = {false, true})
+    public void testRemovedConstructorIsNotInheritedFromCustomParent(boolean checkBinary) {
         ClassInfo baseParent = createClassWithConstructor("Parent", "(I)V");
         ClassInfo baseClass = createClassWithConstructor("A", "Parent", "(I)V");
         ClassInfo inputParent = createClassWithConstructor("Parent", "(I)V");
@@ -52,13 +41,14 @@ public class ConstructorTests extends BaseCompatibilityTest {
 
         ClassInfoCache baseCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", baseParent, "A", baseClass), ImmutableMap.of());
         ClassInfoCache inputCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", inputParent, "A", inputClass), ImmutableMap.of());
-        ClassInfoComparisonResults results = ClassInfoComparer.compare(this.checkBinary, baseCache, baseClass, inputCache, inputClass);
+        ClassInfoComparisonResults results = ClassInfoComparer.compare(checkBinary, baseCache, baseClass, inputCache, inputClass);
 
-        assertIncompatible(results, "A", "<init>", "(I)V", true, getExpectedMessage());
+        assertIncompatible(results, "A", "<init>", "(I)V", true, getExpectedMessage(checkBinary));
     }
 
-    @Test
-    public void testConstructorVisibilityCanBeWidened() {
+    @ParameterizedTest(name = "checkBinary={0}")
+    @ValueSource(booleans = {false, true})
+    public void testConstructorVisibilityCanBeWidened(boolean checkBinary) {
         ClassInfo baseParent = createClassWithConstructor("Parent", "(I)V");
         ClassInfo baseClass = createClassWithConstructor("A", "Parent", "(I)V", Opcodes.ACC_PROTECTED);
         ClassInfo inputParent = createClassWithConstructor("Parent", "(I)V");
@@ -66,13 +56,13 @@ public class ConstructorTests extends BaseCompatibilityTest {
 
         ClassInfoCache baseCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", baseParent, "A", baseClass), ImmutableMap.of());
         ClassInfoCache inputCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", inputParent, "A", inputClass), ImmutableMap.of());
-        ClassInfoComparisonResults results = ClassInfoComparer.compare(this.checkBinary, baseCache, baseClass, inputCache, inputClass);
+        ClassInfoComparisonResults results = ClassInfoComparer.compare(checkBinary, baseCache, baseClass, inputCache, inputClass);
 
         assertCompatible(results, "A");
     }
 
-    private String getExpectedMessage() {
-        return this.checkBinary ? IncompatibilityMessages.METHOD_REMOVED : IncompatibilityMessages.API_METHOD_REMOVED;
+    private static String getExpectedMessage(boolean checkBinary) {
+        return checkBinary ? IncompatibilityMessages.METHOD_REMOVED : IncompatibilityMessages.API_METHOD_REMOVED;
     }
 
     private static ClassInfo createClassWithConstructor(String name, String constructorDesc) {
