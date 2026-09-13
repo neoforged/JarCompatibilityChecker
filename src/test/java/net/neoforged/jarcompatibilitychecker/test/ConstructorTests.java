@@ -39,18 +39,57 @@ public class ConstructorTests extends BaseCompatibilityTest {
         ClassInfoCache baseCache = ClassInfoCache.fromMaps(ImmutableMap.of("A", baseClass), ImmutableMap.of());
         ClassInfoCache inputCache = ClassInfoCache.fromMaps(ImmutableMap.of("A", inputClass), ImmutableMap.of());
         ClassInfoComparisonResults results = ClassInfoComparer.compare(this.checkBinary, baseCache, baseClass, inputCache, inputClass);
-        String expectedMessage = this.checkBinary ? IncompatibilityMessages.METHOD_REMOVED : IncompatibilityMessages.API_METHOD_REMOVED;
 
-        assertIncompatible(results, "A", "<init>", "()V", true, expectedMessage);
+        assertIncompatible(results, "A", "<init>", "()V", true, getExpectedMessage());
+    }
+
+    @Test
+    public void testRemovedConstructorIsNotInheritedFromCustomParent() {
+        ClassInfo baseParent = createClassWithConstructor("Parent", "(I)V");
+        ClassInfo baseClass = createClassWithConstructor("A", "Parent", "(I)V");
+        ClassInfo inputParent = createClassWithConstructor("Parent", "(I)V");
+        ClassInfo inputClass = createClassWithConstructor("A", "Parent", "()V");
+
+        ClassInfoCache baseCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", baseParent, "A", baseClass), ImmutableMap.of());
+        ClassInfoCache inputCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", inputParent, "A", inputClass), ImmutableMap.of());
+        ClassInfoComparisonResults results = ClassInfoComparer.compare(this.checkBinary, baseCache, baseClass, inputCache, inputClass);
+
+        assertIncompatible(results, "A", "<init>", "(I)V", true, getExpectedMessage());
+    }
+
+    @Test
+    public void testConstructorVisibilityCanBeWidened() {
+        ClassInfo baseParent = createClassWithConstructor("Parent", "(I)V");
+        ClassInfo baseClass = createClassWithConstructor("A", "Parent", "(I)V", Opcodes.ACC_PROTECTED);
+        ClassInfo inputParent = createClassWithConstructor("Parent", "(I)V");
+        ClassInfo inputClass = createClassWithConstructor("A", "Parent", "(I)V", Opcodes.ACC_PUBLIC);
+
+        ClassInfoCache baseCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", baseParent, "A", baseClass), ImmutableMap.of());
+        ClassInfoCache inputCache = ClassInfoCache.fromMaps(ImmutableMap.of("Parent", inputParent, "A", inputClass), ImmutableMap.of());
+        ClassInfoComparisonResults results = ClassInfoComparer.compare(this.checkBinary, baseCache, baseClass, inputCache, inputClass);
+
+        assertCompatible(results, "A");
+    }
+
+    private String getExpectedMessage() {
+        return this.checkBinary ? IncompatibilityMessages.METHOD_REMOVED : IncompatibilityMessages.API_METHOD_REMOVED;
     }
 
     private static ClassInfo createClassWithConstructor(String name, String constructorDesc) {
+        return createClassWithConstructor(name, "java/lang/Object", constructorDesc);
+    }
+
+    private static ClassInfo createClassWithConstructor(String name, String superName, String constructorDesc) {
+        return createClassWithConstructor(name, superName, constructorDesc, Opcodes.ACC_PUBLIC);
+    }
+
+    private static ClassInfo createClassWithConstructor(String name, String superName, String constructorDesc, int constructorAccess) {
         ClassNode node = new ClassNode();
         node.version = Opcodes.V1_8;
         node.access = Opcodes.ACC_PUBLIC;
         node.name = name;
-        node.superName = "java/lang/Object";
-        node.methods.add(new MethodNode(Opcodes.ACC_PUBLIC, "<init>", constructorDesc, null, null));
+        node.superName = superName;
+        node.methods.add(new MethodNode(constructorAccess, "<init>", constructorDesc, null, null));
         return new ClassInfo(node);
     }
 }
