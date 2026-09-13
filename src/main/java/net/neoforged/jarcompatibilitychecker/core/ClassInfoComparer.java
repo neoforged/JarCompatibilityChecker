@@ -125,6 +125,7 @@ public class ClassInfoComparer {
             }
         }
 
+        List<ClassInfo> baseParents = getParentClassInfos(checkBinary, baseCache, baseClassInfo, true);
         List<ClassInfo> concreteParents = getParentClassInfos(checkBinary, concreteCache, concreteClassInfo, true);
 
         Set<MethodInfo> seenMethods = new HashSet<>();
@@ -178,7 +179,7 @@ public class ClassInfoComparer {
             if (seenMethods.contains(concreteInfo))
                 continue;
 
-            if (classVisible && (concreteInfo.access & Opcodes.ACC_ABSTRACT) != 0) {
+            if (classVisible && isNewAbstractMethod(checkBinary, baseClassInfo, baseParents, concreteInfo)) {
                 IncompatibilitySeverity severity = nonExtendableApiCompatibility.getSeverity(true, baseClassInfo);
                 if (severity.shouldReport()) {
                     results.addMethodIncompatibility(concreteInfo, IncompatibilityMessages.METHOD_MADE_ABSTRACT, severity.isError());
@@ -392,6 +393,15 @@ public class ClassInfoComparer {
         }
 
         return null;
+    }
+
+    private static boolean isNewAbstractMethod(boolean checkBinary, ClassInfo baseClassInfo, List<ClassInfo> baseParents, MethodInfo concreteInfo) {
+        if ((concreteInfo.access & Opcodes.ACC_ABSTRACT) == 0)
+            return false;
+
+        MethodInfo baseInfo = getMethodInfo(baseClassInfo, baseParents, false, concreteInfo.name, concreteInfo.desc);
+        return baseInfo == null || (baseInfo.access & Opcodes.ACC_ABSTRACT) == 0 ||
+                isVisibilityLowered(checkBinary, baseInfo.access, concreteInfo.access);
     }
 
     @Nullable
