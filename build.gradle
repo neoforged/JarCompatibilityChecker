@@ -40,7 +40,9 @@ dependencies {
     api 'com.google.guava:guava:31.1-jre'
     implementation 'org.jetbrains:annotations:23.0.0'
 
-    testImplementation 'junit:junit:4.13.2'
+    testImplementation platform('org.junit:junit-bom:5.14.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
     testCp(files(tasks.shadowJar.archiveFile))
 }
@@ -56,6 +58,10 @@ jar {
                 'Implementation-Version': project.version
         ])
     }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 shadowJar {

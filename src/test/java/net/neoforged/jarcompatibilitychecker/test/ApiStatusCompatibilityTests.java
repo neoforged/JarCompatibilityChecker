@@ -17,8 +17,8 @@ import net.neoforged.jarcompatibilitychecker.data.AnnotationInfo;
 import net.neoforged.jarcompatibilitychecker.data.ClassInfo;
 import net.neoforged.jarcompatibilitychecker.data.MemberInfo;
 import net.neoforged.jarcompatibilitychecker.data.MethodInfo;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -437,7 +437,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
         private FixtureComparisonBuilder withBaseMethodAnnotation(String name, String desc, String annotation) {
             return withBaseClass(classInfo -> {
                 MethodInfo methodInfo = classInfo.getMethod(name, desc);
-                Assert.assertNotNull("Method " + name + desc + " not found", methodInfo);
+                Assertions.assertNotNull(methodInfo, "Method " + name + desc + " not found");
                 annotate(methodInfo, annotation);
             });
         }
@@ -445,7 +445,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
         private FixtureComparisonBuilder withInputMethodAnnotation(String name, String desc, String annotation) {
             return withInputClass(classInfo -> {
                 MethodInfo methodInfo = classInfo.getMethod(name, desc);
-                Assert.assertNotNull("Method " + name + desc + " not found", methodInfo);
+                Assertions.assertNotNull(methodInfo, "Method " + name + desc + " not found");
                 annotate(methodInfo, annotation);
             });
         }
@@ -525,7 +525,7 @@ public class ApiStatusCompatibilityTests extends BaseCompatibilityTest {
     private static ClassInfo publicClassWithAnnotatedPublicMethod(String name, String annotation) {
         ClassInfo classInfo = publicClassWithPublicMethod(name);
         MethodInfo methodInfo = classInfo.getMethod(METHOD_NAME, METHOD_DESC);
-        Assert.assertNotNull("Method " + METHOD_NAME + METHOD_DESC + " not found", methodInfo);
+        Assertions.assertNotNull(methodInfo, "Method " + METHOD_NAME + METHOD_DESC + " not found");
         annotate(methodInfo, annotation);
         return classInfo;
     }
