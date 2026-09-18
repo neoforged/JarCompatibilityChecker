@@ -189,7 +189,7 @@ public class ClassInfoComparer {
 
         for (FieldInfo baseInfo : baseClassInfo.getFields().values()) {
             boolean isStatic = (baseInfo.access & Opcodes.ACC_STATIC) != 0;
-            FieldInfo inputInfo = getFieldInfo(concreteClassInfo, concreteParents, isStatic, baseInfo.name);
+            FieldInfo inputInfo = getFieldInfo(concreteClassInfo, concreteParents, isStatic, baseInfo.name, baseInfo.desc);
             boolean fieldInternal = classInternal || isInternalApi(baseInfo, internalAnnotations, internalAnnotationCheckMode, packageInfo);
             if (fieldInternal && internalAnnotationCheckMode == InternalAnnotationCheckMode.SKIP)
                 continue;
@@ -406,15 +406,22 @@ public class ClassInfoComparer {
 
     @Nullable
     public static FieldInfo getFieldInfo(ClassInfo classInfo, List<ClassInfo> parents, boolean isStatic, String fieldName) {
+        return getFieldInfo(classInfo, parents, isStatic, fieldName, null);
+    }
+
+    @Nullable
+    private static FieldInfo getFieldInfo(ClassInfo classInfo, List<ClassInfo> parents, boolean isStatic, String fieldName, @Nullable String fieldDesc) {
         FieldInfo fieldInfo = classInfo.getField(fieldName);
-        // Only return this field info if the staticness matches
-        if (fieldInfo != null && (fieldInfo.access & Opcodes.ACC_STATIC) == (isStatic ? Opcodes.ACC_STATIC : 0))
+        // Only return this field info if the descriptor and staticness match
+        if (fieldInfo != null && (fieldDesc == null || fieldDesc.equals(fieldInfo.desc)) &&
+                (fieldInfo.access & Opcodes.ACC_STATIC) == (isStatic ? Opcodes.ACC_STATIC : 0))
             return fieldInfo;
 
         for (ClassInfo parent : parents) {
             fieldInfo = parent.getField(fieldName);
-            // Don't return a private field info from a parent class and only return this parent field info if the staticness matches
-            if (fieldInfo != null && (fieldInfo.access & (Opcodes.ACC_STATIC | Opcodes.ACC_PRIVATE)) == (isStatic ? Opcodes.ACC_STATIC : 0))
+            // Don't return a private field info from a parent class and only return this parent field info if the descriptor and staticness match
+            if (fieldInfo != null && (fieldDesc == null || fieldDesc.equals(fieldInfo.desc)) &&
+                    (fieldInfo.access & (Opcodes.ACC_STATIC | Opcodes.ACC_PRIVATE)) == (isStatic ? Opcodes.ACC_STATIC : 0))
                 return fieldInfo;
         }
 
