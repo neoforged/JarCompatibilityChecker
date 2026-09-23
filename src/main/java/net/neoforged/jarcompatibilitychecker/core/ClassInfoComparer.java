@@ -404,13 +404,34 @@ public class ClassInfoComparer {
                 isVisibilityLowered(checkBinary, baseInfo.access, concreteInfo.access);
     }
 
+    /**
+     * Finds a field with the given name and staticness, regardless of its descriptor.
+     *
+     * @param classInfo the class to search
+     * @param parents the parent classes to search
+     * @param isStatic whether the field must be static
+     * @param fieldName the field name
+     * @return the matching field, or {@code null} if no field matches
+     * @deprecated Use {@link #getFieldInfo(ClassInfo, List, boolean, String, String)} to match the field descriptor.
+     */
+    @Deprecated
     @Nullable
     public static FieldInfo getFieldInfo(ClassInfo classInfo, List<ClassInfo> parents, boolean isStatic, String fieldName) {
         return getFieldInfo(classInfo, parents, isStatic, fieldName, null);
     }
 
+    /**
+     * Finds a field with the given name, descriptor, and staticness.
+     *
+     * @param classInfo the class to search
+     * @param parents the parent classes to search
+     * @param isStatic whether the field must be static
+     * @param fieldName the field name
+     * @param fieldDesc the field descriptor, or {@code null} to match any descriptor
+     * @return the matching field, or {@code null} if no field matches
+     */
     @Nullable
-    private static FieldInfo getFieldInfo(ClassInfo classInfo, List<ClassInfo> parents, boolean isStatic, String fieldName, @Nullable String fieldDesc) {
+    public static FieldInfo getFieldInfo(ClassInfo classInfo, List<ClassInfo> parents, boolean isStatic, String fieldName, @Nullable String fieldDesc) {
         FieldInfo fieldInfo = classInfo.getField(fieldName);
         // Only return this field info if the descriptor and staticness match
         if (fieldInfo != null && (fieldDesc == null || fieldDesc.equals(fieldInfo.desc)) &&
