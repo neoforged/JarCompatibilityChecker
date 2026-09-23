@@ -130,13 +130,18 @@ public class ClassInfoCache {
                     continue;
                 }
 
-                ClassReader reader;
-                try (InputStream entryInputStream = zip.getInputStream(entry)) {
-                    reader = new ClassReader(ByteStreams.toByteArray(entryInputStream));
+                ClassInfo info;
+                try {
+                    ClassReader reader;
+                    try (InputStream entryInputStream = zip.getInputStream(entry)) {
+                        reader = new ClassReader(ByteStreams.toByteArray(entryInputStream));
+                    }
+                    ClassNode classNode = new ClassNode();
+                    reader.accept(classNode, 0);
+                    info = new ClassInfo(classNode);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to read class " + entry.getName() + " from " + file, e);
                 }
-                ClassNode classNode = new ClassNode();
-                reader.accept(classNode, 0);
-                ClassInfo info = new ClassInfo(classNode);
 
                 if (!classes.containsKey(info.name))
                     classes.put(info.name, info);
@@ -169,13 +174,15 @@ public class ClassInfoCache {
                     continue;
                 }
 
-                ClassReader reader;
+                ClassInfo info;
                 try (InputStream entryInputStream = Files.newInputStream(entryPath)) {
-                    reader = new ClassReader(ByteStreams.toByteArray(entryInputStream));
+                    ClassReader reader = new ClassReader(ByteStreams.toByteArray(entryInputStream));
+                    ClassNode classNode = new ClassNode();
+                    reader.accept(classNode, 0);
+                    info = new ClassInfo(classNode);
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to read class " + entryPath, e);
                 }
-                ClassNode classNode = new ClassNode();
-                reader.accept(classNode, 0);
-                ClassInfo info = new ClassInfo(classNode);
 
                 if (!classes.containsKey(info.name))
                     classes.put(info.name, info);
