@@ -81,6 +81,10 @@ public class ClassInfoComparer {
             results.addClassIncompatibility(baseClassInfo, IncompatibilityMessages.CLASS_LOWERED_VISIBILITY, isClassError);
         }
 
+        if (classVisible && isClassKindChanged(baseClassInfo.access, concreteClassInfo.access)) {
+            results.addClassIncompatibility(baseClassInfo, IncompatibilityMessages.CLASS_CHANGED_KIND, isClassError);
+        }
+
         boolean classFinal = (baseClassInfo.access & Opcodes.ACC_FINAL) != 0;
         if (isMadeAbstract(classVisible, baseClassInfo.access, concreteClassInfo.access)) {
             results.addClassIncompatibility(baseClassInfo, IncompatibilityMessages.CLASS_MADE_ABSTRACT, isClassError);
@@ -271,6 +275,10 @@ public class ClassInfoComparer {
     public static boolean isMadeAbstract(boolean classVisible, int baseAccess, int inputAccess) {
         // Even if this is a method which is not visible from outside the JAR, issues can still appear at runtime due to an implementation class not being able to implement the package-private method.
         return classVisible && (baseAccess & Opcodes.ACC_ABSTRACT) == 0 && (inputAccess & Opcodes.ACC_ABSTRACT) != 0;
+    }
+
+    private static boolean isClassKindChanged(int baseAccess, int inputAccess) {
+        return (baseAccess & Opcodes.ACC_INTERFACE) != (inputAccess & Opcodes.ACC_INTERFACE);
     }
 
     public static boolean isVisible(boolean checkBinary, int access) {

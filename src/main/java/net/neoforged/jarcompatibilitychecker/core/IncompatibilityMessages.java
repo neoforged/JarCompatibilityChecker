@@ -10,6 +10,7 @@ public class IncompatibilityMessages {
     public static final String CLASS_MISSING = "Class no longer exists";
     public static final String API_CLASS_MISSING = "API class no longer exists";
     public static final String CLASS_LOWERED_VISIBILITY = "Class was lowered in visibility";
+    public static final String CLASS_CHANGED_KIND = "Class changed between class and interface";
     public static final String CLASS_MISSING_SUPERCLASS = "Class missing superclass of %s";
     public static final String CLASS_MISSING_INTERFACE = "Class missing interface: %s";
     public static final String CLASS_MISSING_INTERFACES = "Class missing interfaces: %s";
